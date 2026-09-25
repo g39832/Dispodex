@@ -7,6 +7,7 @@ import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.urls import reverse
 from PIL import Image
 
@@ -48,6 +49,17 @@ def test_backup_blocked_from_outside_network(item):
     from django.test import Client
 
     assert Client(REMOTE_ADDR="8.8.4.4").post(reverse("api_backup")).status_code == 403
+
+
+@pytest.mark.parametrize(
+    "proxy, origins",
+    [(True, []), (False, ["https://shop.example.com"])],
+)
+def test_serve_refuses_internet_exposure_without_login(settings, proxy, origins):
+    settings.PINKSHEET = {**settings.PINKSHEET, "BEHIND_HTTPS_PROXY": proxy, "REQUIRE_LOGIN": False}
+    settings.CSRF_TRUSTED_ORIGINS = origins
+    with pytest.raises(CommandError, match="PINKSHEET_REQUIRE_LOGIN=1"):
+        call_command("serve", "--skip-setup", "--no-worker")
 
 
 def test_worker_tick_runs_nightly_backup_once(settings, item):

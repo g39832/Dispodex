@@ -17,6 +17,13 @@ def _lan_addresses() -> list[str]:
     return sorted({info[4][0] for info in infos if not info[4][0].startswith("127.")})
 
 
+def reachable_from_internet() -> bool:
+    """True when .env says Dispodex sits behind an HTTPS tunnel/proxy or trusts an https:// origin."""
+    return settings.PINKSHEET["BEHIND_HTTPS_PROXY"] or any(
+        origin.lower().startswith("https://") for origin in settings.CSRF_TRUSTED_ORIGINS
+    )
+
+
 class Command(BaseCommand):
     help = "Start Dispodex (web server + background worker). This is what start.bat runs."
 
@@ -49,6 +56,15 @@ class Command(BaseCommand):
         from waitress import serve
 
         from operations.worker import Worker
+
+        # Through a tunnel every visitor looks like localhost, so the private-network
+        # checks stop protecting anything: the only thing left is the sign-in wall.
+        if reachable_from_internet() and not settings.PINKSHEET["REQUIRE_LOGIN"]:
+            raise CommandError(
+                "Dispodex is set up to be reached over HTTPS, but sign-in is off, so anyone with the address "
+                "could see and export the whole inventory. Set PINKSHEET_REQUIRE_LOGIN=1 in .env "
+                "(create accounts with: python manage.py createsuperuser), then start again."
+            )
 
         if not options["skip_setup"]:
             self._backup_before_update()
