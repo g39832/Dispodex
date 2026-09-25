@@ -1,0 +1,86 @@
+"""Run Dispodex for real: the waitress web server plus the background worker, in one process."""
+import logging
+import socket
+
+from django.conf import settings
+from django.core.management import call_command
+from django.core.management.base import BaseCommand, CommandError
+
+logger = logging.getLogger("pinksheet")
+
+
+def _lan_addresses() -> list[str]:
+    try:
+        infos = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
+    except OSError:
+        return []
+    return sorted({info[4][0] for info in infos if not info[4][0].startswith("127.")})
+
+
+class Command(BaseCommand):
+    help = "Start Dispodex (web server + background worker). This is what start.bat runs."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--host", default=settings.PINKSHEET["HOST"])
+        parser.add_argument("--port", type=int, default=settings.PINKSHEET["PORT"])
+        parser.add_argument("--threads", type=int, default=settings.PINKSHEET["THREADS"])
+        parser.add_argument("--no-worker", action="store_true", help="Don't start the background worker.")
+        parser.add_argument("--skip-setup", action="store_true", help="Skip migrate/collectstatic on start.")
+
+    def _backup_before_update(self) -> None:
+        """An update that changes the database is backed up first, so it can be undone."""
+        from django.db import connection
+        from django.db.migrations.executor import MigrationExecutor
+
+        from operations import backups
+
+        executor = MigrationExecutor(connection)
+        pending = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        if not pending or not settings.DATABASES["default"]["NAME"].exists():
+            return
+        if not connection.introspection.table_names():
+            return  # brand-new install: nothing to protect yet
+        result = backups.run_backup()
+        if not result.ok:
+            raise CommandError(f"Database update found, but the safety backup failed: {result.error}. Nothing was changed.")
+        self.stdout.write("Database update found: backed up first. " + "; ".join(result.messages))
+
+    def handle(self, *args, **options):
+        from waitress import serve
+
+        from operations.worker import Worker
+
+        if not options["skip_setup"]:
+            self._backup_before_update()
+            call_command("migrate", interactive=False, verbosity=0)
+            if not settings.DEBUG:
+                call_command("collectstatic", interactive=False, verbosity=0)
+
+        # Build the web app only now: the static-file server indexes the files
+        # when it is created, so it must come after collectstatic has run.
+        from pinksheet.wsgi import application
+
+        worker = None
+        if settings.PINKSHEET["WORKER_ENABLED"] and not options["no_worker"]:
+            worker = Worker()
+            worker.start()
+
+        port = options["port"]
+        self.stdout.write(self.style.SUCCESS("Dispodex is running."))
+        self.stdout.write(f"  On this computer:   http://localhost:{port}/")
+        for address in _lan_addresses():
+            self.stdout.write(f"  On the shop network: http://{address}:{port}/")
+        self.stdout.write("  Press Ctrl+C to stop.")
+        try:
+            serve(
+                application,
+                host=options["host"],
+                port=port,
+                threads=options["threads"],
+                max_request_body_size=settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 16 * 1024 * 1024,
+                channel_timeout=300,
+                ident="Dispodex",
+            )
+        finally:
+            if worker:
+                worker.stop()

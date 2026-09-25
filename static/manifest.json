@@ -1,0 +1,15 @@
+{
+  "name": "Dispodex",
+  "short_name": "Dispodex",
+  "description": "Inventory: intake, photos, status board and lookup.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2f6cb3",
+  "icons": [
+    {"src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+    {"src": "img/logo.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}

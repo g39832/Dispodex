@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Script builder{% endblock %}
+{% block content %}
+{{ boilerplate|json_script:"final-boilerplate" }}
+<div class="page-head">
+  <div>
+    <nav class="crumbs"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>eBay script builder</span></nav>
+    <h1 class="page-title">eBay script builder</h1>
+    <p class="page-desc">Turn an item into a ChatGPT prompt, paste the answer back, and get the finished eBay description with our standard notes.</p>
+  </div>
+  <div class="head-actions">
+    <span class="save-state" id="script-state"></span>
+  </div>
+</div>
+
+<div class="two-col">
+  <aside class="stack" style="gap:14px">
+    <form class="panel panel-pad stack" id="script-form" autocomplete="off">
+      <label class="field-label" for="script-sku">SKU</label>
+      <input class="input" id="script-sku" value="{{ sku }}" list="script-skus" placeholder="Type or pick a SKU" autofocus spellcheck="false">
+      <datalist id="script-skus">{% for s in recent_skus %}<option value="{{ s }}">{% endfor %}</datalist>
+      <button type="submit" class="btn btn-primary">Load item</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <a class="btn btn-sm" id="script-open-intake" href="{% url 'intake' %}">Intake sheet</a>
+        <a class="btn btn-sm" id="script-open-images" href="{% url 'listing_images' %}">Listing images</a>
+      </div>
+    </form>
+    <section class="panel">
+      <div class="panel-head"><span class="panel-title">Item facts</span></div>
+      <div class="panel-body"><div class="facts" id="script-facts"><p class="hint">Load a SKU to see its details.</p></div></div>
+    </section>
+  </aside>
+
+  <div>
+    <div class="step">
+      <div class="step-head">
+        <span class="step-title"><span class="step-num">1</span> ChatGPT prompt</span>
+        <span class="head-actions" style="gap:6px">
+          <button type="button" class="btn btn-sm btn-ghost" id="rebuild-prompt">{% icon "refresh" %} Rebuild from item</button>
+          <button type="button" class="btn btn-sm" id="copy-prompt">{% icon "copy" %} Copy prompt</button>
+        </span>
+      </div>
+      <textarea class="input editor" id="prompt-text" spellcheck="false" placeholder="Load a SKU to build the prompt."></textarea>
+    </div>
+    <div class="step">
+      <div class="step-head">
+        <span class="step-title"><span class="step-num">2</span> Paste ChatGPT's answer</span>
+        <button type="button" class="btn btn-sm btn-ghost" id="clear-answer">Clear</button>
+      </div>
+      <textarea class="input editor" id="chatgpt-text" spellcheck="false" placeholder="Paste the title, description and item specifics from ChatGPT here."></textarea>
+    </div>
+    <div class="step">
+      <div class="step-head">
+        <span class="step-title"><span class="step-num">3</span> Final eBay description</span>
+        <span class="head-actions" style="gap:6px">
+          <button type="button" class="btn btn-sm btn-ghost" id="build-final">{% icon "refresh" %} Rebuild</button>
+          <button type="button" class="btn btn-sm btn-primary" id="copy-final">{% icon "copy" %} Copy final</button>
+        </span>
+      </div>
+      <textarea class="input editor" id="final-text" spellcheck="false" style="min-height:320px" placeholder="Our standard listing notes plus ChatGPT's answer appear here."></textarea>
+      <p class="hint">Everything saves automatically for this SKU.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/scripts.js' %}"></script>{% endblock %}

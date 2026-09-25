@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Lookup{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Lookup</h1>
+    <p class="page-desc">Search by anything: SKU, what it is, brand or model, CPU, RAM, serial, notes. Type several words to narrow it down. Filters stay in the address bar, so a link shares the exact view.</p>
+  </div>
+  <div class="head-actions">
+    <details class="menu">
+      <summary class="btn">{% icon "download" %} Export</summary>
+      <div class="menu-pop">
+        <div class="menu-label">Exactly what's shown ({{ paginator.count }} item{{ paginator.count|pluralize }})</div>
+        <a href="{% url 'export_xlsx' %}?{{ page_query }}">{% icon "image" %} Excel with photos (.xlsx)</a>
+        <a href="{% url 'export_zip' %}?{{ page_query }}">{% icon "archive" %} Folders with photos (.zip)</a>
+        <a href="{% url 'export_csv' %}?{{ page_query }}">{% icon "list" %} Spreadsheet (.csv)</a>
+        <div class="sep"></div>
+        <div class="menu-label">Everything not sold</div>
+        <a href="{% url 'export_xlsx' %}?scope=active">{% icon "image" %} Excel with photos (.xlsx)</a>
+        <a href="{% url 'export_csv' %}?scope=active">{% icon "list" %} Spreadsheet (.csv)</a>
+      </div>
+    </details>
+    <a class="btn btn-primary" href="{% url 'intake' %}?new=1" data-new-intake>{% icon "plus" %} New intake</a>
+  </div>
+</div>
+
+<form method="get" id="lookup-form" class="toolbar" role="search">
+  <div class="search">
+    {% icon "search" %}
+    <input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="Search anything, e.g. dell i5 16gb" aria-label="Search every field" autofocus autocomplete="off" list="lookup-suggest">
+    <datalist id="lookup-suggest"></datalist>
+  </div>
+  <input type="hidden" name="status" value="{{ filters.status }}">
+  <input class="input num" style="width:96px" name="min_price" value="{{ filters.min_price|default_if_none:'' }}" placeholder="Min $" inputmode="decimal" aria-label="Minimum price">
+  <input class="input num" style="width:96px" name="max_price" value="{{ filters.max_price|default_if_none:'' }}" placeholder="Max $" inputmode="decimal" aria-label="Maximum price">
+  <select class="input" name="sort" style="width:auto" aria-label="Sort">
+    <option value="updated" {% if filters.sort == 'updated' %}selected{% endif %}>Recently updated</option>
+    <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>Price: low to high</option>
+    <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>Price: high to low</option>
+    <option value="sku" {% if filters.sort == 'sku' %}selected{% endif %}>SKU A–Z</option>
+  </select>
+  <button type="button" class="btn{% if filters.advanced_count %} is-on{% endif %}" id="more-filters-btn" aria-expanded="{% if filters.advanced_count %}true{% else %}false{% endif %}" aria-controls="more-filters">
+    {% icon "list" %} More filters{% if filters.advanced_count %} <span class="count-badge">{{ filters.advanced_count }}</span>{% endif %}
+  </button>
+  <span class="btn-pair">
+    <button class="btn" type="submit">Apply</button>
+    {% if filters.is_filtered %}<a class="btn btn-ghost" href="{% url 'lookup' %}">Clear</a>{% endif %}
+  </span>
+</form>
+
+<section class="panel more-filters" id="more-filters" {% if not filters.advanced_count %}hidden{% endif %} aria-label="More filters">
+  <div class="more-grid">
+    <label class="field"><span class="field-label">What is it</span>
+      <input class="input" form="lookup-form" name="what" value="{{ filters.fields.what|default:'' }}" list="opt-what" placeholder="Laptop, Desktop…" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Brand &amp; model</span>
+      <input class="input" form="lookup-form" name="brand" value="{{ filters.fields.brand|default:'' }}" list="opt-brand" placeholder="Dell, Latitude 5590…" autocomplete="off"></label>
+    <label class="field"><span class="field-label">CPU</span>
+      <input class="input" form="lookup-form" name="cpu" value="{{ filters.fields.cpu|default:'' }}" list="opt-cpu" placeholder="i5, Ryzen 5…" autocomplete="off"></label>
+    <label class="field"><span class="field-label">RAM</span>
+      <input class="input" form="lookup-form" name="ram" value="{{ filters.fields.ram|default:'' }}" list="opt-ram" placeholder="16 GB" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Storage</span>
+      <input class="input" form="lookup-form" name="storage" value="{{ filters.fields.storage|default:'' }}" list="opt-storage" placeholder="256" autocomplete="off"></label>
+    <label class="field"><span class="field-label">OS</span>
+      <input class="input" form="lookup-form" name="os" value="{{ filters.fields.os|default:'' }}" placeholder="Windows 11" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Graphics card</span>
+      <input class="input" form="lookup-form" name="gpu" value="{{ filters.fields.gpu|default:'' }}" placeholder="GTX, Radeon…" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Serial number</span>
+      <input class="input" form="lookup-form" name="serial" value="{{ filters.fields.serial|default:'' }}" autocomplete="off" spellcheck="false"></label>
+    <label class="field"><span class="field-label">Location</span>
+      <input class="input" form="lookup-form" name="location" value="{{ filters.fields.location|default:'' }}" list="opt-location" placeholder="Shelf, room…" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Came from</span>
+      <input class="input" form="lookup-form" name="source" value="{{ filters.fields.source|default:'' }}" list="opt-source" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Notes contain</span>
+      <input class="input" form="lookup-form" name="notes" value="{{ filters.fields.notes|default:'' }}" placeholder="scratch, missing…" autocomplete="off"></label>
+    <label class="field"><span class="field-label">Condition</span>
+      <select class="input" form="lookup-form" name="condition">
+        <option value="">Any condition</option>
+        {% for c in condition_choices %}<option value="{{ c }}" {% if filters.condition == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select></label>
+    <label class="field"><span class="field-label">Functional</span>
+      <select class="input" form="lookup-form" name="functional">
+        <option value="">Any</option>
+        {% for c in functional_choices %}<option value="{{ c }}" {% if filters.functional == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select></label>
+    <label class="field"><span class="field-label">Ready</span>
+      <select class="input" form="lookup-form" name="ready">
+        <option value="">Any</option>
+        <option value="yes" {% if filters.ready == 'yes' %}selected{% endif %}>Ready</option>
+        <option value="no" {% if filters.ready == 'no' %}selected{% endif %}>Not ready</option>
+      </select></label>
+    <label class="field"><span class="field-label">Missing</span>
+      <select class="input" form="lookup-form" name="gap">
+        <option value="">Any</option>
+        <option value="no-photos" {% if filters.gap == 'no-photos' %}selected{% endif %}>Missing photos</option>
+        <option value="no-price" {% if filters.gap == 'no-price' %}selected{% endif %}>Missing price</option>
+        <option value="low-res" {% if filters.gap == 'low-res' %}selected{% endif %}>Low-res photos (retake)</option>
+      </select></label>
+    <label class="field"><span class="field-label">Not touched in</span>
+      <select class="input" form="lookup-form" name="stale">
+        <option value="">Any age</option>
+        <option value="7" {% if filters.stale_days == 7 %}selected{% endif %}>7+ days</option>
+        <option value="30" {% if filters.stale_days == 30 %}selected{% endif %}>30+ days</option>
+        <option value="90" {% if filters.stale_days == 90 %}selected{% endif %}>90+ days</option>
+      </select></label>
+    <label class="field"><span class="field-label">Received from</span>
+      <input class="input" type="date" form="lookup-form" name="received_from" value="{{ filters.received_from|date:'Y-m-d' }}"></label>
+    <label class="field"><span class="field-label">Received until</span>
+      <input class="input" type="date" form="lookup-form" name="received_to" value="{{ filters.received_to|date:'Y-m-d' }}"></label>
+  </div>
+  <div class="panel-foot">
+    <button class="btn btn-primary" type="submit" form="lookup-form">{% icon "search" %} Apply filters</button>
+    <button class="btn btn-ghost" type="button" id="more-filters-reset">Reset these fields</button>
+    <span class="hint">Each box matches part of the text, so "5590" finds "Dell Latitude 5590".</span>
+  </div>
+  <datalist id="opt-what">{% for v in what_options %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="opt-brand">{% for v in brand_options %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="opt-cpu">{% for v in cpu_options %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="opt-ram">{% for v in ram_options %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="opt-storage">{% for v in storage_options %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="opt-location">{% for v in location_options %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="opt-source">{% for v in source_options %}<option value="{{ v }}">{% endfor %}</datalist>
+</section>
+
+{% if filter_chips %}
+<div class="chips filter-chips" aria-label="Filters in use">
+  {% for chip in filter_chips %}
+    <a class="chip is-active" href="?{% for k, v in chip.query.items %}{{ k|urlencode }}={{ v|urlencode }}{% if not forloop.last %}&amp;{% endif %}{% endfor %}" title="Remove this filter">
+      <span class="faint">{{ chip.label }}:</span> {{ chip.value }} {% icon "x" %}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="chips" style="margin-bottom:8px">
+  <a class="chip {% if not filters.status %}is-active{% endif %}" data-status-chip="" href="#">All</a>
+  {% for value, label in statuses %}
+    <a class="chip {% if filters.status == value %}is-active{% endif %}" data-status-chip="{{ value }}" href="#">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="result-meta">
+  <span>{{ paginator.count }} item{{ paginator.count|pluralize }}{% if filters.is_filtered %} match{% endif %} · total value <strong class="num">{{ total_value|money|default:"$0.00" }}</strong></span>
+  <span id="recent-skus" class="chips"></span>
+</div>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th class="check-col"><label class="check" title="Select all on this page"><input type="checkbox" data-select-all aria-label="Select all on this page"></label></th>
+        <th>SKU</th>
+        <th>Status</th>
+        <th>What is it?</th>
+        <th class="right">Price</th>
+        <th class="right hide-sm">Qty</th>
+        <th class="hide-sm">Script</th>
+        <th class="hide-sm">Updated</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="check-col"><label class="check"><input type="checkbox" data-select value="{{ row.sku_normalized }}" aria-label="Select {{ row.sku }}"></label></td>
+          <td>
+            <div class="sku-cell">
+              {% if row.thumb_id %}
+                <button type="button" class="thumb-btn" data-lightbox="{% url 'photo' row.thumb_id %}" title="{{ row.sku }}">
+                  <img class="thumb" src="{% url 'photo' row.thumb_id %}?thumb=1" alt="" loading="lazy"></button>
+              {% else %}<span class="thumb-empty" title="No photos"></span>{% endif %}
+              <a class="sku-link" href="{% url 'intake' %}?sku={{ row.sku_normalized|urlencode }}" data-recent-sku="{{ row.sku_normalized }}">{{ row.sku }}</a>
+            </div>
+          </td>
+          <td><span class="tag" data-status="{{ row.status }}">{{ row.status_label }}</span></td>
+          <td>{{ row.what_is_it|default:"—" }}{% if row.brand_model %} <span class="faint">· {{ row.brand_model }}</span>{% endif %}</td>
+          <td class="right num">{% if row.price is not None %}{{ row.price|money }}{% else %}<span class="tag amber">No price</span>{% endif %}</td>
+          <td class="right num hide-sm">{{ row.quantity }}</td>
+          <td class="hide-sm"><a class="script-dot" data-state="{{ row.script_state }}" href="{% url 'scripts' %}?sku={{ row.sku_normalized|urlencode }}">{% if row.script_state == 'ready' %}Ready{% elif row.script_state == 'draft' %}Draft{% elif row.script_state == 'prompt' %}Prompt{% else %}None{% endif %}</a></td>
+          <td class="hide-sm muted nowrap" title="{{ row.updated_at }}">{{ row.updated_at|ago }}</td>
+          <td class="right nowrap">
+            <a class="btn btn-ghost btn-sm" href="{% url 'intake' %}?new=1&copy_sku={{ row.sku_normalized|urlencode }}" title="Start a new item with these details">{% icon "copy" %}</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'print_card' row.sku_normalized %}?autoprint=1" target="_blank" rel="noopener" title="Print card">{% icon "printer" %}</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr class="empty"><td colspan="9">{% if filters.is_filtered %}No items match these filters.{% else %}No items yet — start with a <a href="{% url 'intake' %}?new=1">new intake</a>.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="bulk-bar" id="bulk-bar" hidden>
+  <strong id="bulk-count">0 selected</strong>
+  <select class="input" id="bulk-status" aria-label="Move selected to">
+    <option value="">Move to…</option>
+    {% for value, label in statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+  </select>
+  <button type="button" class="btn btn-sm" data-bulk-ready="1">{% icon "check" %} Mark ready</button>
+  <button type="button" class="btn btn-sm" data-bulk-ready="0">Not ready</button>
+  <button type="button" class="btn btn-ghost btn-sm" id="bulk-clear">Clear</button>
+</div>
+
+{% if paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pages">
+  {% if page_obj.has_previous %}<a href="?{{ page_query }}&page={{ page_obj.previous_page_number }}">← Prev</a>{% endif %}
+  {% for number in page_range %}
+    {% if number == page_obj.number %}<span class="current">{{ number }}</span>
+    {% elif number == paginator.ELLIPSIS %}<span>…</span>
+    {% else %}<a href="?{{ page_query }}&page={{ number }}">{{ number }}</a>{% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}<a href="?{{ page_query }}&page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/lookup.js' %}"></script>{% endblock %}

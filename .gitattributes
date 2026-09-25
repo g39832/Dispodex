@@ -1,0 +1,7 @@
+# Keep files exactly as written. Label (ZPL) fixtures must stay byte-identical,
+# so Git must never rewrite line endings on checkout.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary

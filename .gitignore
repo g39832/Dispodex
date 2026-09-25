@@ -1,0 +1,19 @@
+# Runtime data — never commit the database, photos, backups or secrets
+/data/
+.env
+*.sqlite3
+*.sqlite3-*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

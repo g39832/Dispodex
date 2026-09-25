@@ -1,0 +1,9 @@
+{% extends "base_bare.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<main class="mobile" style="text-align:center;padding-top:20vh">
+  <h1 class="page-title" style="font-size:22px">Item not found</h1>
+  <p class="muted">There is no item with SKU <strong>{{ sku }}</strong>. It may have been deleted.</p>
+  <p><a class="btn" href="{% url 'intake' %}?sku={{ sku|urlencode }}">Create it on the intake sheet</a></p>
+</main>
+{% endblock %}

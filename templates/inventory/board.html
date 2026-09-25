@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Status board{% endblock %}
+{% block page_class %}wide{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Status board</h1>
+    <p class="page-desc">Drag a card to another stage, or use its <span class="nowrap">{% icon "more" %}</span> menu. Changes save instantly.</p>
+  </div>
+  <div class="head-actions">
+    <div class="search toolbar" style="margin:0;position:relative">
+      <input class="input" id="board-filter" placeholder="Filter cards  ( / )" style="width:220px" autocomplete="off">
+    </div>
+    <div class="seg" role="group" aria-label="Card view">
+      <button type="button" class="seg-btn" data-board-view="detailed" aria-pressed="true" title="Photos and all details">{% icon "rows" %} Detailed</button>
+      <button type="button" class="seg-btn" data-board-view="compact" aria-pressed="false" title="Just the names, fits more cards">{% icon "compact" %} Compact</button>
+    </div>
+    <button type="button" class="btn" id="undo-delete" hidden>{% icon "undo" %} Undo delete</button>
+    <button type="button" class="btn" id="scan-btn">{% icon "camera" %} Scan QR</button>
+    <a class="btn btn-primary" href="{% url 'intake' %}?new=1" data-new-intake>{% icon "plus" %} New intake</a>
+  </div>
+</div>
+{{ highlight|json_script:"board-highlight" }}
+<div class="board" id="board">
+  {% for value, label in lanes %}
+    <section class="lane" data-lane="{{ value }}" aria-label="{{ label }}">
+      <div class="lane-head">
+        <span class="tag" data-status="{{ value }}">{{ label }}</span>
+        <span class="lane-count" data-count title="Cards in this stage">…</span>
+        <span class="lane-total num" data-total title="Total value (price × quantity)"></span>
+        <button type="button" class="lane-toggle" data-lane-toggle aria-expanded="true" aria-label="Collapse {{ label }}" title="Collapse this stage">{% icon "chevron-left" %}</button>
+      </div>
+      <div class="lane-body">
+        <div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </section>
+  {% endfor %}
+</div>
+
+<div class="overlay" id="scanner" hidden>
+  <div class="dialog" style="width:min(460px,100%)">
+    <div class="dialog-head">Scan an item's QR code</div>
+    <div class="dialog-body"><div id="scanner-view"></div></div>
+    <div class="dialog-foot"><button type="button" class="btn" id="scanner-close">Close</button></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/qrcode.min.js' %}"></script>
+<script src="{% static 'vendor/html5-qrcode.min.js' %}"></script>
+<script src="{% static 'js/board.js' %}"></script>
+{% endblock %}

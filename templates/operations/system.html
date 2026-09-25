@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}System{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">System</h1>
+    <p class="page-desc">Health checks, Square setup, the sync queue and backups — everything you need when something feels off.</p>
+  </div>
+  <div class="head-actions">
+    <button type="button" class="btn" data-run-backup>{% icon "download" %} Back up now</button>
+    <button type="button" class="btn" data-verify-backup>{% icon "check" %} Verify latest backup</button>
+  </div>
+</div>
+
+<div class="grid-3">
+  <div class="stat"><div class="stat-label">{% icon "bolt" %} Background worker</div>
+    <div class="stat-value" style="font-size:18px">{% if report.worker_running %}<span class="tag green">Running</span>{% else %}<span class="tag amber">Not running</span>{% endif %}</div>
+    <div class="stat-sub">{% if report.worker_running %}Square queue, nightly backup and daily checks are active.{% else %}Start Dispodex with <code>start.bat</code> (or <code>python manage.py serve</code>) to run it.{% endif %}</div></div>
+  <div class="stat"><div class="stat-label">{% icon "shield" %} Database</div>
+    <div class="stat-value" style="font-size:18px">{% if report.database.integrity_ok %}<span class="tag green">Healthy</span>{% else %}<span class="tag red">Problem</span>{% endif %}</div>
+    <div class="stat-sub">{{ report.database.items }} items · {{ report.database.photos }} photos · {{ report.database.size_bytes|filesize }}</div></div>
+  <div class="stat"><div class="stat-label">{% icon "image" %} Photo pipeline</div>
+    <div class="stat-value" style="font-size:18px">{% if report.pipeline.ok %}<span class="tag green">Working</span>{% else %}<span class="tag red">Broken</span>{% endif %}</div>
+    <div class="stat-sub">{{ report.pipeline.detail }}</div></div>
+</div>
+
+<section class="section" id="square">
+  <div class="section-head"><h2 class="section-title">{% icon "cloud" %} Square</h2>
+    <span class="head-actions" style="gap:6px">
+      <button type="button" class="btn btn-sm" id="square-test" {% if not square.has_credentials %}disabled{% endif %}>Test connection</button>
+      <button type="button" class="btn btn-sm" id="square-queue-all" {% if not square.enabled %}disabled{% endif %}>Queue a full sync</button>
+      <button type="button" class="btn btn-sm" id="square-retry" {% if not report.square.queue.dead_letter %}disabled{% endif %}>Retry failed jobs</button>
+    </span>
+  </div>
+  {% if square.enabled %}
+    <div class="callout ok">{% icon "check" %}<span>Square is connected (<strong>{{ square.environment }}</strong>). Every save is pushed automatically by the background worker.</span></div>
+  {% else %}
+    <div class="callout info">{% icon "info" %}
+      <div>
+        <strong>Square isn't set up yet — that's fine, everything else works.</strong>
+        <p style="margin-top:6px">When you're ready, open <code>.env</code> in the app folder (<code>{{ app_folder }}</code>) and fill in {% for name in square.missing %}<code>{{ name }}</code>{% if not forloop.last %} and {% endif %}{% endfor %}, then restart Dispodex. Or run <code>python manage.py configure_square</code> and answer the questions. Changes made before then are queued and sent once Square is connected.</p>
+      </div>
+    </div>
+  {% endif %}
+  <div class="grid-2" style="margin-top:12px">
+    <div class="panel panel-pad">
+      <dl class="kv">
+        <dt>Environment</dt><dd>{{ square.environment }}</dd>
+        <dt>Credentials</dt><dd>{% if square.has_credentials %}<span class="tag green">Present</span>{% else %}<span class="tag amber">Missing</span>{% endif %}</dd>
+        <dt>Sync switch</dt><dd>{% if square.sync_switch %}On{% else %}Off (SQUARE_SYNC_ENABLED=0){% endif %}</dd>
+        <dt>Queue</dt><dd>{{ report.square.queue.queued }} queued · {{ report.square.queue.retrying }} retrying · {{ report.square.queue.dead_letter }} gave up</dd>
+      </dl>
+    </div>
+    <div class="panel panel-pad">
+      <dl class="kv">
+        <dt>Sales webhook</dt><dd>{% if square.webhooks_enabled %}<span class="tag green">Ready</span>{% else %}<span class="tag amber">Not set up</span>{% endif %}</dd>
+        <dt>Webhook URL</dt><dd class="mono">{{ square.webhook_notification_url|default:suggested_webhook_url }}</dd>
+      </dl>
+      {% if not square.webhooks_enabled %}<p class="hint" style="margin-top:8px">To receive Square sales, the app must be reachable over HTTPS from the internet (e.g. a Cloudflare tunnel). Register that address in Square's developer dashboard, then set <code>SQUARE_WEBHOOK_SIGNATURE_KEY</code> and <code>SQUARE_WEBHOOK_NOTIFICATION_URL</code>.</p>{% endif %}
+    </div>
+  </div>
+
+  {% if jobs %}
+  <h3 style="margin:18px 0 8px;font-size:14px">Waiting &amp; failed jobs</h3>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>SKU</th><th>Job</th><th>State</th><th class="right">Tries</th><th>Next try</th><th>Last error</th></tr></thead>
+    <tbody>{% for job in jobs %}<tr>
+      <td><a class="sku-link" href="{% url 'intake' %}?sku={{ job.sku_normalized|urlencode }}">{{ job.sku_normalized }}</a></td>
+      <td>{{ job.get_operation_display }}</td>
+      <td><span class="tag {% if job.status == 'dead_letter' %}red{% elif job.status == 'retrying' %}amber{% else %}blue{% endif %}">{{ job.get_status_display }}</span></td>
+      <td class="right num">{{ job.retry_count }}</td>
+      <td class="nowrap">{{ job.next_retry_at|date:"M j, g:i A"|default:"—" }}</td>
+      <td class="muted">{{ job.last_error|default:"—"|truncatechars:140 }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+
+  {% if audit %}
+  <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Recent Square activity ({{ audit|length }})</summary>
+  <div class="table-wrap" style="margin-top:8px"><table class="table">
+    <thead><tr><th>When</th><th>What</th><th>SKU</th><th>Direction</th><th>Result</th><th>Details</th></tr></thead>
+    <tbody>{% for row in audit %}<tr>
+      <td class="nowrap">{{ row.timestamp|date:"M j, g:i:s A" }}</td>
+      <td>{{ row.operation }}</td>
+      <td>{{ row.sku_normalized|default:"—" }}</td>
+      <td>{{ row.get_direction_display }}</td>
+      <td><span class="tag {% if row.status == 'success' %}green{% elif row.status == 'failure' %}red{% endif %}">{{ row.status }}</span></td>
+      <td class="muted">{{ row.error_message|default:row.response_summary|truncatechars:120 }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div></details>
+  {% endif %}
+</section>
+
+<section class="section">
+  <div class="section-head"><h2 class="section-title">{% icon "shield" %} Backups</h2></div>
+  <p class="muted" style="margin-bottom:10px">Automatic every night at {{ backup_hour }}:00 when Dispodex is running. Stored in <code>{{ backup_path }}</code>{% if report.backup.free_percent is not None %} · {{ report.backup.free_percent }}% disk free{% endif %}.</p>
+  {% if backups %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>File</th><th class="right">Size</th></tr></thead>
+    <tbody>{% for b in backups %}<tr><td class="mono">{{ b.name }}</td><td class="right num">{{ b.size|filesize }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="callout warn">{% icon "alert" %}<span>No backups yet. Click “Back up now”.</span></div>{% endif %}
+</section>
+
+<section class="section">
+  <div class="section-head"><h2 class="section-title">{% icon "settings" %} Environment</h2></div>
+  <div class="grid-2">
+    <div class="panel panel-pad"><dl class="kv">{% for key, value in report.environment.items %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}</dl></div>
+    <div class="panel panel-pad"><dl class="kv">
+      {% for dir in report.storage %}<dt>{{ dir.label }}</dt><dd>{% if dir.writable %}<span class="tag green">OK</span>{% else %}<span class="tag red">Not writable</span>{% endif %} <span class="faint">{{ dir.free_bytes|filesize }} free</span></dd>{% endfor %}
+    </dl></div>
+  </div>
+</section>
+
+{% if runs %}
+<section class="section">
+  <div class="section-head"><h2 class="section-title">{% icon "check" %} Reconciliation runs</h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Run</th><th>Started</th><th>Trigger</th><th>State</th><th class="right">Found</th><th class="right">Fixed</th><th class="right">Need a person</th></tr></thead>
+    <tbody>{% for run in runs %}<tr>
+      <td>#{{ run.id }}</td><td class="nowrap">{{ run.started_at|date:"M j, g:i A" }}</td><td>{{ run.get_trigger_type_display }}</td>
+      <td><span class="tag {% if run.status == 'completed' %}green{% elif run.status == 'failed' %}red{% else %}blue{% endif %}">{{ run.get_status_display }}</span></td>
+      <td class="right num">{{ run.issues_detected }}</td><td class="right num">{{ run.issues_repaired }}</td><td class="right num">{{ run.manual_actions_required }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/dashboard.js' %}"></script><script src="{% static 'js/system.js' %}"></script>{% endblock %}

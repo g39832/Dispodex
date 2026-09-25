@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-desc">Intake, listings, backups and Square at a glance.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'lookup' %}">{% icon "search" %} Find an item</a>
+    <a class="btn btn-primary" href="{% url 'intake' %}?new=1" data-new-intake>{% icon "plus" %} New intake</a>
+  </div>
+</div>
+
+{% if alerts %}
+  <div class="stack" style="margin-bottom:18px">
+    {% for alert in alerts %}<div class="callout warn">{% icon "alert" %}<span>{{ alert }}</span></div>{% endfor %}
+  </div>
+{% endif %}
+
+<div class="stats">
+  <div class="stat"><div class="stat-label">{% icon "box" %} Total inventory</div><div class="stat-value">{{ counts.total }}</div><div class="stat-sub">Every item on file</div></div>
+  <div class="stat"><div class="stat-label">{% icon "refresh" %} In progress</div><div class="stat-value">{{ counts.in_progress }}</div><div class="stat-sub">Not sold yet</div></div>
+  <div class="stat"><div class="stat-label">{% icon "calendar" %} Added today</div><div class="stat-value">{{ counts.today }}</div><div class="stat-sub">New intake records</div></div>
+  <div class="stat"><div class="stat-label">{% icon "dollar" %} Sold</div><div class="stat-value">{{ counts.sold }}</div><div class="stat-sub">Marked SOLD</div></div>
+</div>
+
+<section class="section">
+  <div class="section-head">
+    <h2 class="section-title">Where everything is</h2>
+    <a class="btn btn-ghost btn-sm" href="{% url 'board' %}">Open status board</a>
+  </div>
+  <div class="lane-bar" aria-hidden="true">
+    {% for value, label, count, token in lanes %}{% if count %}<span style="flex:{{ count }};background:var(--tag-{{ token }}-fg);opacity:.55" title="{{ label }}: {{ count }}"></span>{% endif %}{% endfor %}
+  </div>
+  <div class="legend">
+    {% for value, label, count, token in lanes %}
+      <a href="{% url 'lookup' %}?status={{ value|urlencode }}"><span class="tag" data-status="{{ value }}">{{ label }}</span> <span class="num">{{ count }}</span></a>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="grid-2 section">
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-title">{% icon "list" %} Recent activity</span>
+      <a class="btn btn-ghost btn-sm" href="{% url 'lookup' %}">See all</a>
+    </div>
+    <div class="panel-body" style="padding-top:4px;padding-bottom:4px">
+      {% if recent %}
+      <ul class="activity">
+        {% for entry in recent %}
+          <li>
+            {% if entry.thumb_id %}
+              <button type="button" class="thumb-btn" data-lightbox="{% url 'photo' entry.thumb_id %}" title="Photo for {{ entry.sku }}">
+                <img class="thumb" src="{% url 'photo' entry.thumb_id %}?thumb=1" alt="" loading="lazy"></button>
+            {% else %}<span class="thumb-empty" title="No photo yet"></span>{% endif %}
+            <div class="grow">
+              <a class="title" href="{% url 'intake' %}?sku={{ entry.sku_normalized|urlencode }}">{{ entry.sku }}</a>
+              {% if entry.quantity > 1 %}<span class="tag blue">×{{ entry.quantity }}</span>{% endif %}
+              <div class="sub">{{ entry.what_is_it|default:"—" }}</div>
+            </div>
+            <div class="meta">
+              <span class="tag" data-status="{{ entry.status }}">{{ entry.status_label }}</span>
+              <div class="num" style="margin-top:3px">{% if entry.price is not None %}{{ entry.price|money }} · {% endif %}{{ entry.updated_at|ago }}</div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <p class="muted" style="padding:16px 0">Nothing here yet. Start with <a href="{% url 'intake' %}?new=1">a new intake</a>.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="stack" style="gap:16px">
+    <section class="panel" id="backup-card">
+      <div class="panel-head"><span class="panel-title">{% icon "shield" %} Backups</span>
+        <span class="tag {% if backup.latest and backup.age_hours < 36 %}green{% else %}amber{% endif %}">
+          {% if backup.latest %}{{ backup.age_hours }}h ago{% else %}None yet{% endif %}</span></div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Latest</dt><dd class="mono">{{ backup.latest|default:"—" }}</dd>
+          <dt>Size</dt><dd>{{ backup.size_bytes|filesize|default:"—" }}</dd>
+          <dt>Kept</dt><dd>{{ backup.count }} backup{{ backup.count|pluralize }}</dd>
+          <dt>Free space</dt><dd>{% if backup.free_percent is not None %}{{ backup.free_percent }}%{% else %}—{% endif %}</dd>
+        </dl>
+      </div>
+      <div class="panel-foot">
+        <button type="button" class="btn btn-sm" data-run-backup>{% icon "download" %} Back up now</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-verify-backup>{% icon "check" %} Verify latest</button>
+        <span class="hint">Runs automatically every night.</span>
+      </div>
+    </section>
+
+    <section class="panel" id="square-card">
+      <div class="panel-head"><span class="panel-title">{% icon "cloud" %} Square</span>
+        <span class="tag" data-square-state>Checking…</span></div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Last sync</dt><dd data-square-last>—</dd>
+          <dt>Waiting</dt><dd data-square-queue>—</dd>
+          <dt>Sales today</dt><dd data-square-sales>—</dd>
+          <dt>Last sale</dt><dd data-square-recent>—</dd>
+        </dl>
+        <div class="callout error" data-square-error hidden style="margin-top:10px"></div>
+        <div class="callout info" data-square-setup hidden style="margin-top:10px">{% icon "info" %}<span>Square isn't set up yet — everything else works. Add your Square keys to <code>.env</code> (see <a href="{% url 'system' %}">System</a>).</span></div>
+      </div>
+      <div class="panel-foot">
+        <button type="button" class="btn btn-sm" data-square-sync>{% icon "refresh" %} Sync Square now</button>
+        <a class="btn btn-sm btn-ghost" href="{% url 'system' %}#square">Details</a>
+      </div>
+    </section>
+
+    <section class="panel" id="recon-card">
+      <div class="panel-head"><span class="panel-title">{% icon "check" %} Inventory reconciliation</span>
+        <span class="tag" data-recon-state>—</span></div>
+      <div class="panel-body">
+        <p class="muted" data-recon-summary>Compares Dispodex with Square and fixes what it safely can.</p>
+        <ul class="stack" data-recon-issues style="margin:10px 0 0;padding:0;list-style:none;font-size:13px"></ul>
+      </div>
+      <div class="panel-foot">
+        <button type="button" class="btn btn-sm" data-recon-run>{% icon "refresh" %} Run check now</button>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/dashboard.js' %}"></script>{% endblock %}

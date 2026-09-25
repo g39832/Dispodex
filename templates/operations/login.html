@@ -1,0 +1,22 @@
+{% extends "base_bare.html" %}
+{% load static %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<main class="login">
+  <div style="display:flex;align-items:center;gap:10px">
+    <img class="brand-mark" src="{% static 'img/logo.svg' %}" alt="" width="24" height="24">
+    <strong>Dispodex</strong><span class="muted">{{ business_name }}</span>
+  </div>
+  <h1 class="page-title" style="font-size:24px">Sign in</h1>
+  {% if form.errors %}<div class="callout error">Those details didn't match. Try again.</div>{% endif %}
+  <form method="post" class="stack" style="gap:12px">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field"><label class="field-label" for="id_username">Username</label>
+      <input class="input" id="id_username" name="username" autocomplete="username" autofocus required></div>
+    <div class="field"><label class="field-label" for="id_password">Password</label>
+      <input class="input" id="id_password" name="password" type="password" autocomplete="current-password" required></div>
+    <button class="btn btn-primary" type="submit" style="height:36px">Sign in</button>
+  </form>
+</main>
+{% endblock %}

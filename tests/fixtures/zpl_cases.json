@@ -1,0 +1,352 @@
+[
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 42,
+            "codeType": "qr",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,42\r\n^FO9,8^FB202,2,1,L,0^FDD-2620-58^FS\r\n^CF0,12\r\n^FO10,72^FB202,1,0,L,0^FDDell Latitude 5590 Notebo...^FS\r\n^FO218,7^BQN,2,3^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 42,
+            "codeType": "qr",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,42\r\n^FO9,38^FB202,2,1,L,0^FDD-2620-58^FS\r\n^FO218,7^BQN,2,3^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 42,
+            "codeType": "code128",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,42\r\n^FO9,8^FB286,2,1,L,0^FDD-2620-58^FS\r\n^CF0,12\r\n^FO10,54^FB286,1,0,L,0^FDDell Latitude 5590 Notebo...^FS\r\n^FO12,70^BY1,2,18\r\n^BCN,18,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 42,
+            "codeType": "code128",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,42\r\n^FO9,20^FB286,2,1,L,0^FDD-2620-58^FS\r\n^FO12,70^BY1,2,18\r\n^BCN,18,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 42,
+            "codeType": "none",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,42\r\n^FO9,8^FB286,2,1,L,0^FDD-2620-58^FS\r\n^CF0,12\r\n^FO10,72^FB286,1,0,L,0^FDDell Latitude 5590 Notebo...^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 42,
+            "codeType": "none",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,42\r\n^FO9,38^FB286,2,1,L,0^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 300,
+            "skuFontSize": 42,
+            "codeType": "qr",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW450\r\n^LL150\r\n^LH0,0\r\n^CF0,62\r\n^FO13,12^FB299,2,1,L,0^FDD-2620-58^FS\r\n^CF0,18\r\n^FO15,106^FB299,1,0,L,0^FDDell Latitude 5590 Notebo...^FS\r\n^FO322,10^BQN,2,4^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 300,
+            "skuFontSize": 42,
+            "codeType": "qr",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW450\r\n^LL150\r\n^LH0,0\r\n^CF0,62\r\n^FO13,42^FB299,2,1,L,0^FDD-2620-58^FS\r\n^FO322,10^BQN,2,4^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 300,
+            "skuFontSize": 42,
+            "codeType": "code128",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW450\r\n^LL150\r\n^LH0,0\r\n^CF0,62\r\n^FO13,12^FB423,2,1,L,0^FDD-2620-58^FS\r\n^CF0,18\r\n^FO15,80^FB423,1,0,L,0^FDDell Latitude 5590 Notebo...^FS\r\n^FO18,103^BY1,2,27\r\n^BCN,27,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 300,
+            "skuFontSize": 42,
+            "codeType": "code128",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW450\r\n^LL150\r\n^LH0,0\r\n^CF0,62\r\n^FO13,24^FB423,2,1,L,0^FDD-2620-58^FS\r\n^FO18,103^BY1,2,27\r\n^BCN,27,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 300,
+            "skuFontSize": 42,
+            "codeType": "none",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW450\r\n^LL150\r\n^LH0,0\r\n^CF0,62\r\n^FO13,12^FB423,2,1,L,0^FDD-2620-58^FS\r\n^CF0,18\r\n^FO15,106^FB423,1,0,L,0^FDDell Latitude 5590 Notebo...^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "compact",
+            "dpi": 300,
+            "skuFontSize": 42,
+            "codeType": "none",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW450\r\n^LL150\r\n^LH0,0\r\n^CF0,62\r\n^FO13,42^FB423,2,1,L,0^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 203,
+            "skuFontSize": 52,
+            "codeType": "qr",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW508\r\n^LL305\r\n^LH0,0\r\n^CF0,52\r\n^FO18,28^FB340,1,0,L,0^FDD-2620-58^FS\r\n^CF0,29\r\n^FO18,105^FB340,2,4,L,0^FDDell Latitude 5590 Notebook/Laptop with a...^FS\r\n^CF0,22\r\n^FO18,205^FB340,3,3,L,0^FDScratches on lid    ok | 01/30/26^FS\r\n^FO365,55^BQN,2,5^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 203,
+            "skuFontSize": 52,
+            "codeType": "qr",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW508\r\n^LL305\r\n^LH0,0\r\n^CF0,52\r\n^FO18,137^FB340,1,0,L,0^FDD-2620-58^FS\r\n^FO365,55^BQN,2,5^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 203,
+            "skuFontSize": 52,
+            "codeType": "code128",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW508\r\n^LL305\r\n^LH0,0\r\n^CF0,52\r\n^FO18,28^FB476,1,0,L,0^FDD-2620-58^FS\r\n^CF0,29\r\n^FO18,105^FB476,2,4,L,0^FDDell Latitude 5590 Notebook/Laptop with a...^FS\r\n^CF0,22\r\n^FO18,180^FB476,2,3,L,0^FDScratches on lid    ok | 01/30/26^FS\r\n^FO12,242^BY1,2,45\r\n^BCN,45,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 203,
+            "skuFontSize": 52,
+            "codeType": "code128",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW508\r\n^LL305\r\n^LH0,0\r\n^CF0,52\r\n^FO18,94^FB476,1,0,L,0^FDD-2620-58^FS\r\n^FO12,242^BY1,2,45\r\n^BCN,45,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 203,
+            "skuFontSize": 52,
+            "codeType": "none",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW508\r\n^LL305\r\n^LH0,0\r\n^CF0,52\r\n^FO18,28^FB476,1,0,L,0^FDD-2620-58^FS\r\n^CF0,29\r\n^FO18,105^FB476,2,4,L,0^FDDell Latitude 5590 Notebook/Laptop with a...^FS\r\n^CF0,22\r\n^FO18,205^FB476,3,3,L,0^FDScratches on lid    ok | 01/30/26^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 203,
+            "skuFontSize": 52,
+            "codeType": "none",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW508\r\n^LL305\r\n^LH0,0\r\n^CF0,52\r\n^FO18,137^FB476,1,0,L,0^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 300,
+            "skuFontSize": 52,
+            "codeType": "qr",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW750\r\n^LL450\r\n^LH0,0\r\n^CF0,77\r\n^FO27,41^FB502,1,0,L,0^FDD-2620-58^FS\r\n^CF0,43\r\n^FO27,155^FB502,2,6,L,0^FDDell Latitude 5590 Notebook/Laptop with a...^FS\r\n^CF0,33\r\n^FO27,303^FB502,3,4,L,0^FDScratches on lid    ok | 01/30/26^FS\r\n^FO539,81^BQN,2,8^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 300,
+            "skuFontSize": 52,
+            "codeType": "qr",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW750\r\n^LL450\r\n^LH0,0\r\n^CF0,77\r\n^FO27,142^FB502,1,0,L,0^FDD-2620-58^FS\r\n^FO539,81^BQN,2,8^FDLA,D-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 300,
+            "skuFontSize": 52,
+            "codeType": "code128",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW750\r\n^LL450\r\n^LH0,0\r\n^CF0,77\r\n^FO27,41^FB703,1,0,L,0^FDD-2620-58^FS\r\n^CF0,43\r\n^FO27,155^FB703,2,6,L,0^FDDell Latitude 5590 Notebook/Laptop with a...^FS\r\n^CF0,33\r\n^FO27,266^FB703,2,4,L,0^FDScratches on lid    ok | 01/30/26^FS\r\n^FO18,358^BY1,2,67\r\n^BCN,67,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 300,
+            "skuFontSize": 52,
+            "codeType": "code128",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW750\r\n^LL450\r\n^LH0,0\r\n^CF0,77\r\n^FO27,99^FB703,1,0,L,0^FDD-2620-58^FS\r\n^FO18,358^BY1,2,67\r\n^BCN,67,Y,N,N^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 300,
+            "skuFontSize": 52,
+            "codeType": "none",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW750\r\n^LL450\r\n^LH0,0\r\n^CF0,77\r\n^FO27,41^FB703,1,0,L,0^FDD-2620-58^FS\r\n^CF0,43\r\n^FO27,155^FB703,2,6,L,0^FDDell Latitude 5590 Notebook/Laptop with a...^FS\r\n^CF0,33\r\n^FO27,303^FB703,3,4,L,0^FDScratches on lid    ok | 01/30/26^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "D-2620-58",
+            "itemName": "Dell Latitude 5590 Notebook/Laptop with a long name",
+            "description": "Scratches on lid ^ ~ \\ ok",
+            "date": "2026-01-30",
+            "labelPreset": "detail",
+            "dpi": 300,
+            "skuFontSize": 52,
+            "codeType": "none",
+            "showDetails": false
+        },
+        "zpl": "^XA\r\n^PW750\r\n^LL450\r\n^LH0,0\r\n^CF0,77\r\n^FO27,142^FB703,1,0,L,0^FDD-2620-58^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    },
+    {
+        "input": {
+            "sku": "ÅBC_ünicode/12345678901234567890",
+            "itemName": "",
+            "description": null,
+            "date": "bad",
+            "labelPreset": "compact",
+            "dpi": 203,
+            "skuFontSize": 80,
+            "codeType": "qr",
+            "showDetails": true
+        },
+        "zpl": "^XA\r\n^PW304\r\n^LL102\r\n^LH0,0\r\n^CF0,64\r\n^FO9,8^FB202,2,1,L,0^FD??BC_??nicode/1234567...^FS\r\n^CF0,12\r\n^FO10,72^FB202,1,0,L,0^FD^FS\r\n^FO218,7^BQN,2,3^FDLA,BC_nicode/1234567890^FS\r\n^PQ1,0,1,Y\r\n^XZ"
+    }
+]

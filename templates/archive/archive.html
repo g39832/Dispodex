@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Archive{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Archive</h1>
+    <p class="page-desc">Read-only history from the old systems — {{ total }} record{{ total|pluralize }}. Search by SKU, title, buyer, notes or anything in the original row.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'export_archive' %}?{{ page_query }}">{% icon "download" %} Export CSV</a>
+  </div>
+</div>
+
+<form method="get" class="toolbar" role="search">
+  <div class="search">{% icon "search" %}<input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="SKU, title, buyer, notes, legacy id" autofocus></div>
+  <select class="input" name="status" style="width:auto" aria-label="Status">
+    <option value="">Any status</option>
+    {% for s in statuses %}<option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+  </select>
+  {% if sources %}
+  <select class="input" name="source" style="width:auto" aria-label="Source">
+    <option value="">Any source</option>
+    {% for s in sources %}<option value="{{ s }}" {% if filters.source == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <select class="input" name="legacy_source" style="width:auto" aria-label="Imported from">
+    <option value="">Any import</option>
+    {% for s in legacy_sources %}<option value="{{ s }}" {% if filters.legacy_source == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+  </select>
+  <input class="input" type="date" name="sold_from" value="{{ filters.sold_from|date:'Y-m-d' }}" style="width:auto" aria-label="From date">
+  <input class="input" type="date" name="sold_to" value="{{ filters.sold_to|date:'Y-m-d' }}" style="width:auto" aria-label="To date">
+  <button class="btn" type="submit">Search</button>
+  {% if query %}<a class="btn btn-ghost" href="{% url 'archive' %}">Clear</a>{% endif %}
+</form>
+
+<div class="result-meta"><span>{{ paginator.count }} record{{ paginator.count|pluralize }}{% if page_obj.paginator.count %} · showing {{ page_obj.start_index }}–{{ page_obj.end_index }}{% endif %}</span></div>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>SKU</th><th>Title</th><th>Status</th><th>Sold / date</th><th class="right">Sale price</th><th class="hide-sm">Source</th><th class="hide-sm">Imported from</th><th>Notes / original row</th></tr></thead>
+    <tbody>
+      {% for row in page_obj %}
+        <tr>
+          <td class="nowrap"><strong>{{ row.sku|default:"—" }}</strong></td>
+          <td>{{ row.display_title|default:"—" }}</td>
+          <td><span class="tag">{{ row.status|default:"—" }}</span></td>
+          <td class="nowrap">{% if row.sold_at %}{{ row.sold_at|date:"M j, Y" }}{% else %}<span class="faint">{{ row.created_at|date:"M j, Y" }}</span>{% endif %}</td>
+          <td class="right num">{{ row.sold_price|money|default:"—" }}</td>
+          <td class="hide-sm">{{ row.source|default:"—" }}</td>
+          <td class="hide-sm muted">{{ row.legacy_label|default:"—" }}</td>
+          <td>
+            {% if row.notes %}<div>{{ row.notes }}</div>{% endif %}
+            <details><summary class="hint" style="cursor:pointer">Original row</summary><pre style="white-space:pre-wrap;margin:6px 0 0;max-width:460px">{{ row.payload_pretty }}</pre></details>
+          </td>
+        </tr>
+      {% empty %}
+        <tr class="empty"><td colspan="8">{% if query %}No archive records match.{% else %}The archive is empty. Import old data with <code>python manage.py import_archive_csv</code>.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pages">
+  {% if page_obj.has_previous %}<a href="?{{ page_query }}&page={{ page_obj.previous_page_number }}">← Prev</a>{% endif %}
+  {% for number in page_range %}
+    {% if number == page_obj.number %}<span class="current">{{ number }}</span>
+    {% elif number == paginator.ELLIPSIS %}<span>…</span>
+    {% else %}<a href="?{{ page_query }}&page={{ number }}">{{ number }}</a>{% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}<a href="?{{ page_query }}&page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

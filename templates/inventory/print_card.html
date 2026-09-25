@@ -1,0 +1,53 @@
+{% load static ui %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ item.sku }} · Card</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/card.css' %}">
+</head>
+<body{% if autoprint %} data-autoprint="1"{% endif %}>
+{{ qr_url|json_script:"card-qr-url" }}
+<main class="card-sheet">
+  <header class="head">
+    <div class="thumb">{% if thumb %}<img src="{% url 'photo' thumb.id %}" alt="">{% endif %}</div>
+    <div class="ident">
+      <div class="sku">{{ item.sku }}</div>
+      <div class="line"><b>Status</b> {{ item.status_label }} <span class="pill">{{ item.get_reviewed_display }}</span></div>
+      {% if item.price is not None %}<div class="line"><b>Price</b> {{ item.price|money }}{% if item.quantity > 1 %} × {{ item.quantity }}{% endif %}</div>{% endif %}
+      <div class="line"><b>Updated</b> {{ item.updated_at|date:"M j, Y g:i A" }}</div>
+    </div>
+    <div class="qr" id="qr"></div>
+  </header>
+
+  <section class="grid4">
+    <div><span>What is it?</span>{{ item.what_is_it|default:"—" }}</div>
+    <div><span>Brand &amp; model</span>{{ item.brand_model|default:"—" }}</div>
+    <div><span>Date received</span>{{ item.date_received|date:"M j, Y"|default:"—" }}</div>
+    <div><span>Came from</span>{{ item.source|default:"—" }}</div>
+  </section>
+
+  <section class="grid4 specs">
+    <div><span>RAM</span>{{ item.ram|default:"—" }}</div>
+    <div><span>SSD GB</span>{{ item.ssd_gb|default:"—" }}</div>
+    <div><span>CPU</span>{{ item.cpu|default:"—" }}</div>
+    <div><span>OS</span>{{ item.os|default:"—" }}</div>
+    <div><span>Battery health</span>{{ item.battery_health|default:"—" }}</div>
+    <div><span>Graphics card</span>{{ item.graphics_card|default:"—" }}</div>
+    <div><span>Screen</span>{{ item.screen_resolution|default:"—" }}</div>
+    <div><span>Location</span>{{ item.where_it_goes|default:"—" }}</div>
+  </section>
+
+  <section class="notes"><span>Notes</span><div>{{ item.notes|linebreaksbr|default:"—" }}</div></section>
+
+  {% if extra_photos %}
+  <section class="photos">
+    {% for photo in extra_photos %}<img src="{% url 'photo' photo.id %}" alt="">{% endfor %}
+  </section>
+  {% endif %}
+  <footer>{{ business_name }} · Dispodex card · printed {{ printed_at|date:"M j, Y g:i A" }}</footer>
+</main>
+<script src="{% static 'vendor/qrcode.min.js' %}"></script>
+<script src="{% static 'js/card.js' %}"></script>
+</body>
+</html>

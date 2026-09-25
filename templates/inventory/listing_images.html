@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Listing images{% endblock %}
+{% block page_class %}wide{% endblock %}
+{% block content %}
+{{ sku|json_script:"composer-sku" }}
+{{ positions|json_script:"composer-positions" }}
+<div class="page-head">
+  <div>
+    <nav class="crumbs"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>Listing images</span></nav>
+    <h1 class="page-title">Listing images{% if sku %} · {{ sku }}{% endif %}</h1>
+    <p class="page-desc">Lay out the pictures for an eBay listing. Drag photos onto the canvas, upload new ones, or paste an image link.</p>
+  </div>
+  <form class="head-actions" method="get">
+    <input class="input" name="sku" value="{{ sku }}" list="composer-skus" placeholder="SKU" style="width:180px" spellcheck="false">
+    <datalist id="composer-skus">{% for s in recent_skus %}<option value="{{ s }}">{% endfor %}</datalist>
+    <button class="btn" type="submit">Open</button>
+  </form>
+</div>
+
+{% if not sku %}
+  <div class="callout info">{% icon "info" %}<span>Pick a SKU above to start composing its listing images.</span></div>
+{% else %}
+<div class="two-col side-right">
+  <div>
+    <div class="canvas" id="canvas">
+      <div class="canvas-empty" id="canvas-empty"><strong>The canvas is empty</strong><span>Drag photos here from the right</span></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center">
+      <span class="save-state" id="composer-state"></span>
+      <button type="button" class="btn btn-sm btn-danger" id="composer-clear" style="margin-left:auto">{% icon "trash" %} Clear canvas</button>
+    </div>
+  </div>
+  <aside class="stack" style="gap:14px">
+    <section class="panel">
+      <div class="panel-head"><span class="panel-title">{% icon "image" %} {{ sku }} photos</span></div>
+      <div class="panel-body">
+        {% if photos %}
+          <div class="strip" id="strip">
+            {% for photo in photos %}<img src="{% url 'photo' photo.id %}?thumb=1" data-src="{% url 'photo' photo.id %}" alt="{{ photo.original_name }}" draggable="true">{% endfor %}
+          </div>
+        {% else %}<p class="hint">No photos for this SKU yet.</p>{% endif %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><span class="panel-title">{% icon "upload" %} Upload</span></div>
+      <div class="panel-body">
+        <div class="dropzone" id="composer-drop" tabindex="0" role="button"><strong>Drop or click</strong><span class="hint">JPG, PNG, WebP or GIF</span></div>
+        <input type="file" id="composer-file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><span class="panel-title">{% icon "link" %} Image link</span></div>
+      <div class="panel-body stack">
+        <input class="input" type="url" id="composer-url" placeholder="https://i.ebayimg.com/…">
+        <button type="button" class="btn btn-sm" id="composer-url-add">Add to canvas</button>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/listing_images.js' %}"></script>{% endblock %}

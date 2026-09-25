@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}{% if active_sku %}{{ active_sku }}{% else %}New intake{% endif %}{% endblock %}
+{% block content %}
+{{ intake_config|json_script:"intake-config" }}
+<form method="post" id="intake-form" novalidate autocomplete="off">
+  {% csrf_token %}
+  <input type="hidden" name="id" value="{{ item_id }}">
+
+  <nav class="crumbs quick-hide"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>Intake sheet</span></nav>
+
+  {% if errors %}
+    <div class="stack" style="margin-bottom:16px">
+      {% for error in errors %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endfor %}
+    </div>
+  {% endif %}
+  <div class="callout info" id="draft-banner" hidden style="margin-bottom:14px">
+    {% icon "info" %}<span id="draft-banner-text">Restored unsaved changes.</span>
+    <button type="button" class="btn btn-sm" id="draft-discard" style="margin-left:auto">Discard changes</button>
+  </div>
+  <div class="callout warn" id="draft-conflict" hidden style="margin-bottom:14px">
+    {% icon "alert" %}<span>Someone else is editing this SKU and has newer unsaved changes.</span>
+    <span style="margin-left:auto;display:flex;gap:6px">
+      <button type="button" class="btn btn-sm" id="conflict-load">Load their changes</button>
+      <button type="button" class="btn btn-sm btn-ghost" id="conflict-keep">Keep mine</button>
+    </span>
+  </div>
+  <div class="callout" id="restore-local" hidden style="margin-bottom:14px">
+    {% icon "undo" %}<span>You cleared the sheet with unsaved changes.</span>
+    <button type="button" class="btn btn-sm" id="restore-local-btn" style="margin-left:auto">Restore last draft</button>
+  </div>
+
+  <div class="intake-grid">
+    <div>
+      <div class="title-row">
+        <label class="sr-only" for="sku-input">SKU</label>
+        <input class="sku-input" id="sku-input" name="sku" value="{{ values.sku }}" placeholder="Type or scan a SKU"
+               required autofocus spellcheck="false" autocapitalize="characters">
+      </div>
+      <div class="title-meta">
+        <label class="sr-only" for="status-select">Status</label>
+        <select name="status" id="status-select" class="status-select tag" data-status="{{ values.status }}">
+          {% if legacy_status %}<option value="{{ legacy_status }}" selected>{{ legacy_status }}</option>{% endif %}
+          {% for value, label in statuses %}
+            <option value="{{ value }}" {% if values.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if item %}
+          <span class="save-state">Saved {{ item.updated_at|date:"M j, g:i A" }}</span>
+        {% else %}
+          <span class="tag blue">New item</span>
+        {% endif %}
+        <span class="save-state" id="autosave-state" hidden></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="quick-mode-toggle" style="margin-left:auto" title="Show only the essentials (handy on a phone)">Quick mode</button>
+      </div>
+
+      <div class="quick-props">
+        <div class="field">
+          <label class="field-label" for="what-is-it">What is it? <span class="faint">· required</span></label>
+          <input class="input" id="what-is-it" name="what_is_it" value="{{ values.what_is_it }}" list="what-options"
+                 placeholder="Laptop, Desktop, Mini PC…" required>
+          <datalist id="what-options">{% for option in what_options %}<option value="{{ option }}">{% endfor %}</datalist>
+        </div>
+        <div class="field">
+          <label class="field-label" for="price-input">Price</label>
+          <input class="input num" id="price-input" name="price" value="{{ values.price }}" inputmode="decimal" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label class="field-label" for="qty-input">Quantity</label>
+          <input class="input num" id="qty-input" name="quantity" type="number" min="1" step="1" value="{{ values.quantity }}">
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="section-head"><h2 class="section-title">Details</h2></div>
+        <div class="props">
+          <div class="prop quick-hide">
+            <label class="prop-name" for="ebay-category">{% icon "tag" %} eBay category</label>
+            <div class="prop-value combo">
+              <input class="input" id="ebay-category" name="ebay_category" value="{{ values.ebay_category }}" placeholder="Type to search eBay categories" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ebay-category-menu">
+              <input type="hidden" name="ebay_category_path" value="{{ values.ebay_category_path }}">
+              <input type="hidden" name="ebay_category_id" value="{{ values.ebay_category_id }}">
+              <ul class="combo-menu" id="ebay-category-menu" role="listbox" hidden></ul>
+              <div class="hint" id="ebay-category-path" style="padding:0 9px">{{ values.ebay_category_path }}</div>
+            </div>
+          </div>
+          <div class="prop">
+            <label class="prop-name" for="where-it-goes">{% icon "pin" %} Location</label>
+            <div class="prop-value"><input class="input" id="where-it-goes" name="where_it_goes" value="{{ values.where_it_goes }}" placeholder="Where it goes (shelf, room…)"></div>
+          </div>
+          <div class="prop quick-hide">
+            <label class="prop-name" for="date-received">{% icon "calendar" %} Date received</label>
+            <div class="prop-value"><input class="input" id="date-received" name="date_received" type="date" value="{{ values.date_received }}"></div>
+          </div>
+          <div class="prop quick-hide">
+            <label class="prop-name" for="source">{% icon "box" %} Came from</label>
+            <div class="prop-value"><input class="input" id="source" name="source" value="{{ values.source }}" placeholder="Where did it come from?"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section quick-hide" data-print-section="d1">
+        <div class="section-head"><h2 class="section-title"><span class="tag-code">D1</span> Intake tasks</h2></div>
+        <div class="props">
+          <div class="prop">
+            <span class="prop-name">{% icon "bolt" %} Functional</span>
+            <div class="prop-value choices">
+              {% for opt in functional_choices %}<label class="choice"><input type="radio" name="functional" value="{{ opt }}" {% if values.functional == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="prop">
+            <span class="prop-name">{% icon "star" %} Condition</span>
+            <div class="prop-value choices">
+              {% for opt, tone in condition_choices %}<label class="choice {{ tone }}"><input type="radio" name="condition" value="{{ opt }}" {% if values.condition == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="prop">
+            <span class="prop-name">{% icon "link" %} Cords / adapters</span>
+            <div class="prop-value choices">
+              {% for opt in yes_no %}<label class="choice"><input type="radio" name="cords_adapters" value="{{ opt }}" {% if values.cords_adapters == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="prop">
+            <span class="prop-name">{% icon "box" %} Keep together</span>
+            <div class="prop-value choices">
+              {% for opt in yes_no %}<label class="choice"><input type="radio" name="keep_items_together" value="{{ opt }}" {% if values.keep_items_together == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="prop">
+            <span class="prop-name">{% icon "camera" %} Picture taken</span>
+            <div class="prop-value choices">
+              {% for opt in yes_no %}<label class="choice"><input type="radio" name="picture_taken" value="{{ opt }}" {% if values.picture_taken == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section quick-hide" data-print-section="d2">
+        <div class="section-head"><h2 class="section-title"><span class="tag-code">D2</span> Description tasks</h2></div>
+        <div class="props">
+          <div class="prop">
+            <span class="prop-name">{% icon "bolt" %} Powers on &amp; stays on</span>
+            <div class="prop-value choices">
+              {% for opt in yes_no %}<label class="choice"><input type="radio" name="power_on" value="{{ opt }}" {% if values.power_on == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="prop"><label class="prop-name" for="brand-model">{% icon "text" %} Brand &amp; model</label>
+            <div class="prop-value"><input class="input" id="brand-model" name="brand_model" value="{{ values.brand_model }}" placeholder="e.g. Dell Latitude 5590"></div></div>
+          <div class="prop"><label class="prop-name" for="cpu">{% icon "cpu" %} CPU</label>
+            <div class="prop-value"><input class="input" id="cpu" name="cpu" value="{{ values.cpu }}" placeholder="e.g. i5-8350U"></div></div>
+          <div class="prop"><label class="prop-name" for="ram">{% icon "cpu" %} RAM</label>
+            <div class="prop-value"><input class="input" id="ram" name="ram" value="{{ values.ram }}" placeholder="e.g. 16 GB"></div></div>
+          <div class="prop"><label class="prop-name" for="ssd">{% icon "cpu" %} SSD (GB)</label>
+            <div class="prop-value"><input class="input" id="ssd" name="ssd_gb" value="{{ values.ssd_gb }}" placeholder="e.g. 256"></div></div>
+          <div class="prop"><label class="prop-name" for="os">{% icon "cpu" %} OS</label>
+            <div class="prop-value"><input class="input" id="os" name="os" value="{{ values.os }}" placeholder="Installed operating system"></div></div>
+          <div class="prop">
+            <span class="prop-name">{% icon "check" %} Compatible OS</span>
+            <div class="prop-value choices">
+              {% for opt in compatible_os_choices %}<label class="choice green"><input type="radio" name="compatible_os" value="{{ opt }}" {% if values.compatible_os == opt %}checked{% endif %}><span>{{ opt }}</span></label>{% endfor %}
+            </div>
+          </div>
+          <div class="prop"><label class="prop-name" for="battery">{% icon "bolt" %} Battery health</label>
+            <div class="prop-value"><input class="input" id="battery" name="battery_health" value="{{ values.battery_health }}" placeholder="e.g. 87%"></div></div>
+          <div class="prop"><label class="prop-name" for="gpu">{% icon "image" %} Graphics card</label>
+            <div class="prop-value"><input class="input" id="gpu" name="graphics_card" value="{{ values.graphics_card }}"></div></div>
+          <div class="prop"><label class="prop-name" for="screen">{% icon "image" %} Screen resolution</label>
+            <div class="prop-value"><input class="input" id="screen" name="screen_resolution" value="{{ values.screen_resolution }}" placeholder="e.g. 1920×1080"></div></div>
+          <div class="prop">
+            <span class="prop-name">{% icon "list" %} Checks</span>
+            <div class="prop-value check-row">
+              <label class="check"><input type="checkbox" name="diagnostics_test_ran" {% if values.diagnostics_test_ran %}checked{% endif %}> Diagnostics test ran</label>
+              <label class="check"><input type="checkbox" name="wifi_card_installed" {% if values.wifi_card_installed %}checked{% endif %}> Wi-Fi card installed</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><h2 class="section-title">Notes</h2></div>
+        <textarea class="input" name="notes" rows="5" placeholder="Anything worth knowing about this item…">{{ values.notes }}</textarea>
+      </section>
+
+      <div class="sticky-actions">
+        <div style="min-width:180px;flex:1">
+          <div class="hint" id="required-label">Fill in SKU and “What is it?” to save.</div>
+          <div class="progress-line" style="margin-top:4px"><span id="required-bar"></span></div>
+        </div>
+        <label class="check"><input type="checkbox" name="save_and_new" id="save-and-new"> Start a new item after saving</label>
+        <button type="submit" class="btn btn-primary" id="save-button" title="Ctrl + Enter">{% icon "check" %} Save item</button>
+      </div>
+    </div>
+
+    <aside class="intake-side">
+      <section class="panel" id="photos-panel">
+        <div class="panel-head"><span class="panel-title">{% icon "image" %} Photos <span class="faint num" id="photo-count">{{ photos|length }}</span></span>
+          <button type="button" class="btn btn-ghost btn-sm" id="download-photos" {% if not photos %}hidden{% endif %}>{% icon "download" %} Download</button></div>
+        <div class="panel-body">
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add photos">
+            <strong>Add photos</strong>
+            <span class="hint">Drop, paste or click. Up to {{ photo_limit_mb }} MB each.</span>
+            <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+          </div>
+          <p class="hint" id="photo-hint" style="margin-top:8px">{% if not active_sku %}Photos attach as soon as a SKU is entered.{% else %}Drag to reorder. The starred photo is used everywhere as the thumbnail.{% endif %}</p>
+          <div class="photo-grid" id="photo-grid">
+            {% for photo in photos %}
+              <figure class="photo" draggable="true" data-photo-id="{{ photo.id }}" style="margin:0">
+                {% if photo.is_thumb %}<span class="badge-thumb">Thumbnail</span>{% endif %}{% if photo.low_res %}<span class="badge-lowres" title="Small preview from the old app's export. Retake or replace it for listings.">Low-res</span>{% endif %}
+                <img src="{% url 'photo' photo.id %}?thumb=1" alt="{{ photo.original_name }}" loading="lazy">
+                <div class="photo-actions">
+                  <button type="button" data-photo-view title="View">{% icon "search" %}</button>
+                  <button type="button" data-photo-thumb title="Use as thumbnail">{% icon "star" %}</button>
+                  <button type="button" data-photo-delete title="Delete photo">{% icon "trash" %}</button>
+                </div>
+              </figure>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="panel quick-hide">
+        <div class="panel-head"><span class="panel-title">{% icon "copy" %} Copy fields from another SKU</span></div>
+        <div class="panel-body stack">
+          <div class="combo">
+            <input class="input" id="copy-sku" placeholder="SKU to copy from" autocomplete="off" spellcheck="false">
+            <ul class="combo-menu" id="copy-sku-menu" hidden></ul>
+          </div>
+          <button type="button" class="btn btn-sm" id="copy-sku-btn">Copy fields</button>
+          <p class="hint" id="copy-status">Copies everything except the SKU and photos.</p>
+        </div>
+      </section>
+
+      <section class="panel quick-hide qr-panel" id="qr-panel" {% if not active_sku %}hidden{% endif %}>
+        <div class="panel-head"><span class="panel-title">{% icon "qr" %} QR code</span></div>
+        <div class="panel-body qr-box">
+          <div class="qr" id="intake-qr" role="img" aria-label="QR code for this item"></div>
+          <div class="qr-text">
+            <p class="hint">Scan with a phone to open this item's phone card: change status, price and notes, or add photos from the camera.</p>
+            <a class="btn btn-sm" id="open-phone-card" href="{% url 'mobile_card' active_sku|default:'_' %}" target="_blank" rel="noopener">{% icon "phone" %} Open phone card</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel quick-hide">
+        <div class="panel-head"><span class="panel-title">{% icon "bolt" %} Tools</span></div>
+        <div class="panel-body stack">
+          <button type="button" class="btn btn-sm" id="print-sheet-btn">{% icon "printer" %} Print sheet</button>
+          <label class="check" style="padding:0"><input type="checkbox" id="print-pink"> Print on pink</label>
+          <button type="button" class="btn btn-sm" id="print-sticker" data-label-preset="compact">{% icon "tag" %} Print sticker (Zebra)</button>
+          <a class="btn btn-sm" id="open-script" href="{% url 'scripts' %}?sku={{ active_sku|urlencode }}">{% icon "script" %} eBay script builder</a>
+          <a class="btn btn-sm" id="open-images" href="{% url 'listing_images' %}?sku={{ active_sku|urlencode }}">{% icon "image" %} Listing images</a>
+          {% if item %}<button type="button" class="btn btn-sm btn-danger" id="delete-item" data-id="{{ item.id }}">{% icon "trash" %} Delete item</button>{% endif %}
+        </div>
+      </section>
+      {% if item %}
+      <section class="panel quick-hide" id="history-panel">
+        <div class="panel-head"><span class="panel-title">{% icon "clock" %} History</span>
+          {% if not user.is_authenticated %}<button type="button" class="btn btn-ghost btn-sm" data-set-name>{% icon "user" %} <span data-actor-label>{% if request.actor_named %}{{ request.actor }}{% else %}Set your name{% endif %}</span></button>{% endif %}</div>
+        <div class="panel-body">
+          {% include "partials/history.html" with history_limit=6 %}
+        </div>
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+</form>
+
+{# ── Printed intake sheet (only visible when printing) ── #}
+<div class="print-sheet" id="print-sheet" aria-hidden="true">
+  <div class="print-head">
+    <div class="print-thumb">{% if print_thumb %}<img src="{% url 'photo' print_thumb.id %}" alt="">{% endif %}</div>
+    <div class="print-ident">
+      <div class="print-sku" data-print="sku"></div>
+      <div class="print-line"><b>Status</b> <span data-print="status"></span></div>
+      <div class="print-line"><b>Price</b> <span data-print="price"></span> &nbsp; <b>Qty</b> <span data-print="quantity"></span></div>
+      <div class="print-line"><b>What is it?</b> <span data-print="what_is_it"></span></div>
+    </div>
+    <div class="print-qr" id="print-qr"></div>
+  </div>
+  <div class="print-cols">
+    <div class="print-box">
+      <h3>D1 · Intake tasks</h3>
+      <dl data-print-list="d1"></dl>
+    </div>
+    <div class="print-box">
+      <h3>D2 · Description tasks</h3>
+      <dl data-print-list="d2"></dl>
+    </div>
+  </div>
+  <div class="print-box"><h3>Details</h3><dl data-print-list="details"></dl></div>
+  <div class="print-box print-notes"><h3>Notes</h3><div data-print="notes"></div></div>
+  <div class="print-gallery" id="print-gallery"></div>
+  <div class="print-foot">{{ business_name }} · Dispodex · printed <span data-print="printed_at"></span></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/qrcode.min.js' %}"></script>
+<script src="{% static 'vendor/qz-tray.js' %}"></script>
+<script src="{% static 'js/labels.js' %}"></script>
+<script src="{% static 'js/intake.js' %}"></script>
+{% endblock %}

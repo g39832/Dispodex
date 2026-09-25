@@ -1,0 +1,89 @@
+{% load static ui %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}{{ business_name }}{% endblock %} · Dispodex</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <meta name="apple-mobile-web-app-title" content="Dispodex">
+  <meta name="application-name" content="Dispodex">
+  <script src="{% static 'js/theme-init.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/print.css' %}" media="print">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% include "partials/icons.html" %}
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <a class="workspace" href="{% url 'dashboard' %}">
+      <img class="brand-mark" src="{% static 'img/logo.svg' %}" alt="" width="24" height="24">
+      <span>
+        <span class="workspace-name">Dispodex</span><br>
+        <span class="workspace-sub">{{ business_name }}</span>
+      </span>
+    </a>
+    <button type="button" class="nav-search" data-open-palette>
+      {% icon "search" %} Search <kbd>Ctrl K</kbd>
+    </button>
+    <ul class="nav">
+      {% for name, label, icon_name in nav_items %}
+        <li><a href="{% if name == 'intake' %}{% url 'intake' %}?new=1{% else %}{% url name %}{% endif %}"
+               class="{% if page == name %}is-active{% endif %}"
+               {% if name == 'intake' %}data-new-intake{% endif %}>{% icon icon_name %} {{ label }}</a></li>
+      {% endfor %}
+    </ul>
+    <div class="sidebar-footer">
+      <ul class="nav">
+        <li><a href="{% url 'system' %}" class="{% if page == 'system' %}is-active{% endif %}">{% icon "settings" %} System
+          <span class="status-dot {% if square_enabled %}on{% else %}off{% endif %}" style="margin-left:auto" title="Square {% if square_enabled %}connected{% else %}not set up{% endif %}"></span></a></li>
+      </ul>
+      {% if not user.is_authenticated %}
+      <button type="button" class="nav-button" data-set-name title="Name shown in item history for changes from this device">{% icon "user" %} <span class="nav-ellipsis" data-actor-label>{% if request.actor_named %}{{ request.actor }}{% else %}Set your name{% endif %}</span></button>
+      {% endif %}
+      <button type="button" class="nav-button" data-theme-toggle>{% icon "moon" %} <span data-theme-label>Dark mode</span></button>
+      {% if require_login and user.is_authenticated %}
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button type="submit" class="nav-button">{% icon "logout" %} Sign out</button>
+        </form>
+      {% endif %}
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="btn btn-ghost btn-icon" data-nav-toggle aria-label="Open menu">{% icon "menu" %}</button>
+      <img class="brand-mark" src="{% static 'img/logo.svg' %}" alt="" width="22" height="22" style="width:22px;height:22px">
+      <strong>Dispodex</strong>
+      <button type="button" class="btn btn-ghost btn-icon" style="margin-left:auto" data-open-palette aria-label="Search">{% icon "search" %}</button>
+    </header>
+    <main class="page {% block page_class %}{% endblock %}" id="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+{% for message in messages %}
+  <template data-flash="{% if message.level_tag == 'error' %}err{% else %}ok{% endif %}">{{ message }}</template>
+{% endfor %}
+
+<div class="overlay" id="palette" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Search inventory">
+    <div class="palette-input">
+      {% icon "search" %}
+      <input type="text" id="palette-input" placeholder="Search SKU, serial, model, specs, notes…" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette-results" id="palette-results"></div>
+    <div class="palette-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span>Barcode scanners work here too</span></div>
+  </div>
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

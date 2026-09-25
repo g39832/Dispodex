@@ -1,0 +1,41 @@
+{% comment %}
+Item history timeline. Needs: history (list of ItemEvent). Optional: history_limit (int).
+{% endcomment %}
+{% load ui %}
+{% if history %}
+<ol class="history">
+  {% for event in history %}
+  <li class="history-row" data-action="{{ event.action }}"{% if history_limit and forloop.counter > history_limit %} hidden data-history-more{% endif %}>
+    <span class="history-dot" aria-hidden="true"></span>
+    <div class="history-main">
+      <div class="history-line">
+        <strong>{{ event.actor|default:"Someone" }}</strong>
+        {% if event.action == "created" %}created this item
+        {% elif event.action == "deleted" %}deleted this item
+        {% elif event.action == "restored" %}restored this item
+        {% elif event.action == "photo_added" %}added {{ event.note|default:"a photo" }}
+        {% elif event.action == "photo_removed" %}removed {{ event.note|default:"a photo" }}
+        {% elif event.changes|length == 1 %}changed {{ event.changes.0.label }}
+        {% else %}changed {{ event.changes|length }} fields{% endif %}
+      </div>
+      {% if event.action == "edited" and event.changes %}
+      <ul class="history-changes">
+        {% for change in event.changes %}
+        <li>{% if event.changes|length > 1 %}<span class="history-field">{{ change.label }}</span>{% endif %}
+          {% if change.old %}<s>{{ change.old }}</s> → {% endif %}<span class="history-new">{{ change.new|default:"(cleared)" }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <time class="history-time" datetime="{{ event.created_at|date:'c' }}" title="{{ event.created_at|date:'M j, Y g:i A' }}">
+        {{ event.created_at|ago }}{% if event.note and event.action == "edited" %} · {{ event.note }}{% endif %}
+      </time>
+    </div>
+  </li>
+  {% endfor %}
+</ol>
+{% if history_limit and history|length > history_limit %}
+<button type="button" class="btn btn-ghost btn-sm history-toggle" data-history-toggle>Show all {{ history|length }} changes</button>
+{% endif %}
+{% else %}
+<p class="hint">No changes recorded yet. Every edit from now on shows here with who made it.</p>
+{% endif %}

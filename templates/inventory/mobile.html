@@ -1,0 +1,70 @@
+{% extends "base_bare.html" %}
+{% load static ui %}
+{% block title %}{{ item.sku }}{% endblock %}
+{% block content %}
+{{ item.sku_normalized|json_script:"mobile-sku" }}
+<main class="mobile">
+  <div style="display:flex;align-items:center;gap:10px">
+    <img class="brand-mark" src="{% static 'img/logo.svg' %}" alt="" width="24" height="24">
+    <span class="muted">Dispodex</span>
+    <a class="btn btn-ghost btn-sm" style="margin-left:auto" href="{% url 'intake' %}?sku={{ item.sku_normalized|urlencode }}">Full sheet</a>
+  </div>
+
+  <section class="panel panel-pad">
+    <h1 class="page-title" style="font-size:26px">{{ item.sku }}</h1>
+    <p class="muted" style="margin-top:4px">{{ item.what_is_it|default:"—" }}{% if item.brand_model %} · {{ item.brand_model }}{% endif %}</p>
+    <div class="title-meta">
+      <span class="tag" data-status="{{ item.status }}" id="status-tag">{{ item.status_label }}</span>
+      <span class="tag review-badge" data-review="{{ item.reviewed }}">{{ item.get_reviewed_display }}</span>
+      {% if item.price is not None %}<span class="num">{{ item.price|money }}</span>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel panel-pad stack" style="gap:12px">
+    <div class="field">
+      <label class="field-label" for="m-status">Status</label>
+      <select class="input" id="m-status">
+        {% for value, label in statuses %}<option value="{{ value }}" {% if item.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="m-price">Price</label>
+      <input class="input num" id="m-price" inputmode="decimal" value="{% if item.price is not None %}{{ item.price }}{% endif %}" placeholder="0.00">
+    </div>
+    <div class="field">
+      <label class="field-label" for="m-notes">Notes</label>
+      <textarea class="input" id="m-notes" rows="3" placeholder="Add a note…">{{ item.notes }}</textarea>
+    </div>
+    <button type="button" class="btn btn-green" id="m-sold" style="height:44px" {% if item.is_sold %}disabled{% endif %}>{% icon "check" %} {% if item.is_sold %}Sold{% else %}Mark sold{% endif %}</button>
+    <span class="save-state" id="m-state" hidden></span>
+  </section>
+
+  <section class="panel panel-pad">
+    <div class="field-label" style="margin-bottom:8px">Add photos</div>
+    <div class="big-btns">
+      <button type="button" class="btn btn-primary" id="m-camera">{% icon "camera" %} Take photo</button>
+      <button type="button" class="btn" id="m-gallery">{% icon "image" %} From gallery</button>
+    </div>
+    <input type="file" id="m-camera-input" accept="image/*" capture="environment" hidden>
+    <input type="file" id="m-gallery-input" accept="image/*" multiple hidden>
+    <p class="hint" id="m-upload-state" style="margin-top:8px">Photos shrink on the phone before uploading. Max {{ photo_limit_mb }} MB.</p>
+    <div class="photo-grid" id="m-photos">
+      {% for photo in photos %}
+        <a class="photo" href="{% url 'photo' photo.id %}" target="_blank" rel="noopener"><img src="{% url 'photo' photo.id %}?thumb=1" alt="" loading="lazy">{% if photo.low_res %}<span class="badge-lowres">Low-res</span>{% endif %}</a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel panel-pad">
+    <div class="m-history-head">
+      <div class="field-label">{% icon "clock" %} Recent changes</div>
+      {% if not user.is_authenticated %}<button type="button" class="btn btn-ghost btn-sm" data-set-name>{% icon "user" %} <span data-actor-label>{% if request.actor_named %}{{ request.actor }}{% else %}Set your name{% endif %}</span></button>{% endif %}
+    </div>
+    {% include "partials/history.html" with history_limit=4 %}
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/compressor.min.js' %}"></script>
+<script src="{% static 'js/mobile.js' %}"></script>
+{% endblock %}
