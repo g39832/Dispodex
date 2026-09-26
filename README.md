@@ -98,3 +98,5 @@ All commands are run from this folder as `.venv\Scripts\python.exe manage.py <co
 
 More detail: [docs/operations.md](docs/operations.md) (backups, restore, troubleshooting) and
 [docs/development.md](docs/development.md) (how the code is organised, how to change it safely).
+
+<!-- Test push after recreating the repo (2026-09-26) -->
