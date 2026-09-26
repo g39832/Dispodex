@@ -87,6 +87,48 @@ def csv_rows(response):
                                   if hasattr(response, "streaming_content") else response.content.decode("utf-8-sig")))
 
 
+# ── partner exports ─────────────────────────────────────────────────────────
+INTERNAL_TEXT = ["School district", "Shelf A", "Shelf B", "Small scratch on lid", "No hard drive"]
+INTERNAL_HEADERS = {"Source", "Where It Goes", "Notes", "Status", "What Box", "In eBay Room", "eBay Status",
+                    "Date Received", "ID", "Created", "Updated"}
+
+
+def test_partner_csv_keeps_item_details_but_no_internal_info(client, stock):
+    Item.objects.create(sku="SOLD-1", what_is_it="Laptop", brand_model="Dell Latitude 5400", status="sold")
+    response = client.get(reverse("export_partner_csv") + "?brand=dell")
+    rows = list(csv_rows(response))
+    header, body = rows[0], rows[1:]
+    assert not INTERNAL_HEADERS & set(header)
+    assert {"SKU", "CPU", "RAM", "Storage", "Serial Number", "Condition", "Qty", "Price"} <= set(header)
+    assert {row[0] for row in body} == {"LAP-1", "DESK-1"}  # filter applied, sold item left out
+    text = response.content.decode("utf-8-sig")
+    assert not [word for word in INTERNAL_TEXT if word in text]
+    lap = dict(zip(header, next(row for row in body if row[0] == "LAP-1")))
+    assert lap["CPU"] == "i5-8350U" and lap["RAM"] == "16 GB" and lap["Price"] == "120.00"
+    assert "inventory_partner_" in response["Content-Disposition"]
+
+
+def test_partner_xlsx_and_zip_leave_out_internal_info(client, stock):
+    import io
+    import zipfile
+
+    import openpyxl
+    book = openpyxl.load_workbook(io.BytesIO(b"".join(client.get(reverse("export_partner_xlsx")).streaming_content)))
+    sheet = book.active
+    headers = [cell.value for cell in sheet[1]]
+    assert headers[0] == "SKU" and headers[-1] == "Photos" and not INTERNAL_HEADERS & set(headers)
+    values = {str(cell.value) for row in sheet.iter_rows() for cell in row}
+    assert not [word for word in INTERNAL_TEXT if word in values]
+    archive = zipfile.ZipFile(io.BytesIO(b"".join(client.get(reverse("export_partner_zip")).streaming_content)))
+    info = archive.read("LAP-1/info.txt").decode()
+    assert "CPU: i5-8350U" in info and not [word for word in INTERNAL_TEXT if word in info]
+
+
+def test_regular_export_still_has_every_column(client, stock):
+    header = next(csv_rows(client.get(reverse("export_csv"))))
+    assert INTERNAL_HEADERS <= set(header) and header[0] == "SKU"
+
+
 def test_lookup_page_shows_panel_chips_and_suggestions(client, stock):
     html = client.get(reverse("lookup") + "?brand=dell&cpu=i5").content.decode()
     assert 'id="more-filters"' in html and 'id="more-filters" hidden' not in html  # open while in use

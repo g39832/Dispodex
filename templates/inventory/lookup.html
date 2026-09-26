@@ -19,6 +19,11 @@
         <div class="menu-label">Everything not sold</div>
         <a href="{% url 'export_xlsx' %}?scope=active">{% icon "image" %} Excel with photos (.xlsx)</a>
         <a href="{% url 'export_csv' %}?scope=active">{% icon "list" %} Spreadsheet (.csv)</a>
+        <div class="sep"></div>
+        <div class="menu-label">For a partner: what's shown, not sold, no internal info</div>
+        <a href="{% url 'export_partner_xlsx' %}?{{ page_query }}">{% icon "image" %} Excel with photos (.xlsx)</a>
+        <a href="{% url 'export_partner_zip' %}?{{ page_query }}">{% icon "archive" %} Folders with photos (.zip)</a>
+        <a href="{% url 'export_partner_csv' %}?{{ page_query }}">{% icon "list" %} Spreadsheet (.csv)</a>
       </div>
     </details>
     <a class="btn btn-primary" href="{% url 'intake' %}?new=1" data-new-intake>{% icon "plus" %} New intake</a>

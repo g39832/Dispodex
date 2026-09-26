@@ -55,6 +55,33 @@ EXPORT_COLUMNS = [
     ("updated_at", "Updated"),
 ]
 
+# What a partner may see: everything that describes the item itself. Left out on purpose:
+# where it came from (source), where it sits (location, box, eBay room), notes, the
+# workflow lane, eBay bookkeeping and internal IDs/dates.
+PARTNER_COLUMNS = [
+    ("sku", "SKU"),
+    ("what_is_it", "Item"),
+    ("brand_model", "Brand/Model"),
+    ("ebay_category", "Category"),
+    ("condition", "Condition"),
+    ("functional", "Functional"),
+    ("power_on", "Powers On"),
+    ("cpu", "CPU"),
+    ("ram", "RAM"),
+    ("ssd_gb", "Storage"),
+    ("graphics_card", "Graphics"),
+    ("screen_resolution", "Screen Resolution"),
+    ("battery_health", "Battery Health"),
+    ("os", "OS"),
+    ("compatible_os", "Compatible OS"),
+    ("wifi_card_installed", "WiFi Card Installed"),
+    ("diagnostics_test_ran", "Diagnostics Ran"),
+    ("cords_adapters", "Cords/Adapters Included"),
+    ("serial_number", "Serial Number"),
+    ("quantity", "Qty"),
+    ("price", "Price"),
+]
+
 # Only one big (photo) export at a time — they can take a while on a busy day.
 heavy_export_lock = threading.Lock()
 
@@ -85,13 +112,13 @@ def filename(prefix: str, scope: str, ext: str) -> str:
     return f"{prefix}_{suffix}{timezone.localdate():%Y-%m-%d}.{ext}"
 
 
-def inventory_csv(items) -> str:
+def inventory_csv(items, columns=EXPORT_COLUMNS) -> str:
     buffer = io.StringIO()
     buffer.write("﻿")  # BOM so Excel opens UTF-8 correctly
     writer = csv.writer(buffer, lineterminator="\r\n")
-    writer.writerow([header for _, header in EXPORT_COLUMNS])
+    writer.writerow([header for _, header in columns])
     for item in items:
-        writer.writerow([cell_value(item, field) for field, _ in EXPORT_COLUMNS])
+        writer.writerow([cell_value(item, field) for field, _ in columns])
     return buffer.getvalue()
 
 
@@ -112,13 +139,13 @@ def _folder_name(item: Item, used: set[str]) -> str:
     return candidate
 
 
-def _info_text(item: Item, photo_count: int) -> str:
+def _info_text(item: Item, photo_count: int, columns) -> str:
     lines = [f"Photos: {photo_count}"]
-    lines += [f"{header}: {cell_value(item, field)}" for field, header in EXPORT_COLUMNS]
+    lines += [f"{header}: {cell_value(item, field)}" for field, header in columns]
     return "\n".join(lines) + "\n"
 
 
-def inventory_zip(items: list[Item], csv_name: str):
+def inventory_zip(items: list[Item], csv_name: str, columns=EXPORT_COLUMNS):
     """A ZIP with one folder per SKU (photos + info.txt) and the CSV at the root.
 
     Returns an open temporary file positioned at the start; it deletes itself when closed.
@@ -127,7 +154,7 @@ def inventory_zip(items: list[Item], csv_name: str):
     photos = _photos_by_sku(items)
     used: set[str] = set()
     with zipfile.ZipFile(handle, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(csv_name, inventory_csv(items))
+        archive.writestr(csv_name, inventory_csv(items, columns))
         for item in items:
             folder = _folder_name(item, used)
             archive.writestr(f"{folder}/", "")
@@ -140,12 +167,12 @@ def inventory_zip(items: list[Item], csv_name: str):
                 base = sanitize_filename(Path(photo.original_name).stem)
                 # Photos are already compressed; storing them avoids wasted CPU.
                 archive.write(path, f"{folder}/{count:02d}_{base}{path.suffix}", compress_type=zipfile.ZIP_STORED)
-            archive.writestr(f"{folder}/info.txt", _info_text(item, count))
+            archive.writestr(f"{folder}/info.txt", _info_text(item, count, columns))
     handle.seek(0)
     return handle
 
 
-def inventory_xlsx(items: list[Item]):
+def inventory_xlsx(items: list[Item], columns=EXPORT_COLUMNS):
     """An Excel workbook, one row per SKU, with every photo shown in the last column."""
     from openpyxl import Workbook
     from openpyxl.drawing.image import Image as SheetImage
@@ -158,7 +185,8 @@ def inventory_xlsx(items: list[Item]):
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Inventory"
-    headers = [header for _, header in EXPORT_COLUMNS] + ["Photos"]
+    fields = [field for field, _ in columns]
+    headers = [header for _, header in columns] + ["Photos"]
     sheet.append(headers)
     header_fill = PatternFill("solid", fgColor="E7F0FA")
     for cell in sheet[1]:
@@ -171,9 +199,9 @@ def inventory_xlsx(items: list[Item]):
     photos = _photos_by_sku(items)
     thumb_height = 96
     for row_index, item in enumerate(items, start=2):
-        sheet.append([cell_value(item, field, for_sheet=True) for field, _ in EXPORT_COLUMNS] + [""])
-        price_cell = sheet.cell(row=row_index, column=[f for f, _ in EXPORT_COLUMNS].index("price") + 1)
-        price_cell.number_format = '"$"#,##0.00'
+        sheet.append([cell_value(item, field, for_sheet=True) for field in fields] + [""])
+        if "price" in fields:
+            sheet.cell(row=row_index, column=fields.index("price") + 1).number_format = '"$"#,##0.00'
         total_height, placed = 0, 0
         for photo in photos.get(item.sku_normalized, []):
             thumb = photo_service.thumbnail_file(photo, size=160)
@@ -197,7 +225,7 @@ def inventory_xlsx(items: list[Item]):
 
     widths = {"sku": 18, "what_is_it": 28, "brand_model": 28, "notes": 40, "ebay_category_path": 40,
               "price": 12, "quantity": 6, "created_at": 19, "updated_at": 19}
-    for index, (field, _header) in enumerate(EXPORT_COLUMNS, start=1):
+    for index, field in enumerate(fields, start=1):
         sheet.column_dimensions[get_column_letter(index)].width = widths.get(field, 16)
     sheet.column_dimensions[photo_letter].width = 26
 
