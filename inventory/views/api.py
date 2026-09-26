@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from core.http import json_error, json_ok, read_json_body
-from core.network import private_network_only
+from core.network import not_in_demo, private_network_only
 from core.skus import normalize_sku, sku_directory
 from inventory.models import Item, ListingImageLayout, Photo, Status
 from inventory.services import drafts as draft_service
@@ -188,6 +188,7 @@ def photo_list(request):
 
 
 @require_POST
+@not_in_demo
 def photo_upload(request):
     sku = normalize_sku(request.POST.get("sku"))
     files = request.FILES.getlist("photo") or request.FILES.getlist("photos")
@@ -288,6 +289,7 @@ def ebay_category_list(request):
 
 # ── eBay listing-image composer ──────────────────────────────────────────────
 @require_POST
+@not_in_demo
 def listing_image_upload(request):
     sku = normalize_sku(request.POST.get("sku"))
     upload = request.FILES.get("photo")

@@ -163,6 +163,8 @@ PINKSHEET = {
     "REQUIRE_LOGIN": env_bool("PINKSHEET_REQUIRE_LOGIN", False),
     "BEHIND_HTTPS_PROXY": env_bool("PINKSHEET_BEHIND_HTTPS_PROXY", False),
     "MAINTENANCE_MODE": env_bool("PINKSHEET_MAINTENANCE_MODE", False),
+    # A public showcase copy filled by `seed_demo`: made-up items, uploads and operator actions off.
+    "DEMO_MODE": env_bool("PINKSHEET_DEMO_MODE", False),
     "MAINTENANCE_MESSAGE": env(
         "PINKSHEET_MAINTENANCE_MESSAGE",
         "Dispodex is temporarily offline for maintenance.",

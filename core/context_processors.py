@@ -19,4 +19,5 @@ def app_context(request):
         "nav_items": NAV,
         "square_enabled": get_config().enabled,
         "require_login": settings.PINKSHEET["REQUIRE_LOGIN"],
+        "demo_mode": settings.PINKSHEET["DEMO_MODE"],
     }

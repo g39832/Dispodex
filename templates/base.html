@@ -61,6 +61,9 @@
       <button type="button" class="btn btn-ghost btn-icon" style="margin-left:auto" data-open-palette aria-label="Search">{% icon "search" %}</button>
     </header>
     <main class="page {% block page_class %}{% endblock %}" id="content">
+      {% if demo_mode %}
+        <div class="callout info demo-banner">{% icon "info" %}<span><strong>Demo copy.</strong> Every item here is made up, and it all resets each night, so drag cards, edit sheets and try things freely. Uploads are turned off.</span></div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

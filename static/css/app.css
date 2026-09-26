@@ -346,6 +346,7 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .callout.ok { background: var(--green-soft); color: var(--green-soft-text); }
 .callout.info { background: var(--blue-soft); color: var(--blue-soft-text); }
 .callout + .callout { margin-top: 8px; }
+.demo-banner { margin-bottom: 16px; }
 .stack { display: grid; gap: 8px; }
 
 /* ── Tables (database view) ────────────────────────────────────────────── */

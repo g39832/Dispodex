@@ -59,7 +59,7 @@ class Command(BaseCommand):
 
         # Through a tunnel every visitor looks like localhost, so the private-network
         # checks stop protecting anything: the only thing left is the sign-in wall.
-        if reachable_from_internet() and not settings.PINKSHEET["REQUIRE_LOGIN"]:
+        if reachable_from_internet() and not settings.PINKSHEET["REQUIRE_LOGIN"] and not settings.PINKSHEET["DEMO_MODE"]:
             raise CommandError(
                 "Dispodex is set up to be reached over HTTPS, but sign-in is off, so anyone with the address "
                 "could see and export the whole inventory. Set PINKSHEET_REQUIRE_LOGIN=1 in .env "

@@ -95,8 +95,10 @@ All commands are run from this folder as `.venv\Scripts\python.exe manage.py <co
 | `reconcile_square` | Compare Dispodex with Square and fix what is safe |
 | `refresh_ebay_categories` | Download eBay's current category list |
 | `createsuperuser` | Make a login for `/admin/` (or for sign-in, if you turn it on) |
+| `seed_demo` | Demo copies only: replace everything with made-up items (see docs/demo.md) |
 
 More detail: [docs/operations.md](docs/operations.md) (backups, restore, troubleshooting) and
 [docs/development.md](docs/development.md) (how the code is organised, how to change it safely).
+To run a public demo copy with made-up items that resets nightly, see [docs/demo.md](docs/demo.md).
 
 <!-- Test push after recreating the repo (2026-09-26) -->
