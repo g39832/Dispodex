@@ -235,5 +235,40 @@ def inventory_xlsx(items: list[Item], columns=EXPORT_COLUMNS):
     return handle
 
 
+def sortable_xlsx(items: list[Item], columns):
+    """A plain Excel sheet without photos, with filter buttons on, so it can be sorted and filtered safely.
+
+    (Photos float over the cells in the photo workbook, so sorting there would mix them up.)
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Inventory"
+    fields = [field for field, _ in columns]
+    sheet.append([header for _, header in columns])
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill("solid", fgColor="E7F0FA")
+    for item in items:
+        sheet.append([cell_value(item, field, for_sheet=True) for field in fields])
+    if "price" in fields:
+        letter = get_column_letter(fields.index("price") + 1)
+        for cell in sheet[letter][1:]:
+            cell.number_format = '"$"#,##0.00'
+    sheet.freeze_panes = "B2"
+    sheet.auto_filter.ref = f"A1:{get_column_letter(len(fields))}{max(sheet.max_row, 2)}"
+    widths = {"sku": 18, "what_is_it": 28, "brand_model": 28, "ebay_category": 24, "price": 12, "quantity": 6}
+    for index, field in enumerate(fields, start=1):
+        sheet.column_dimensions[get_column_letter(index)].width = widths.get(field, 16)
+
+    handle = tempfile.TemporaryFile()
+    workbook.save(handle)
+    handle.seek(0)
+    return handle
+
+
 def active_scope(items_qs, scope: str):
     return items_qs.exclude(status=Status.SOLD) if scope == "active" else items_qs

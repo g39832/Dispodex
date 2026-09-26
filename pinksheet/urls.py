@@ -31,6 +31,7 @@ urlpatterns = [
     path("exports/partner.csv", exports.partner_csv, name="export_partner_csv"),
     path("exports/partner.zip", exports.partner_zip, name="export_partner_zip"),
     path("exports/partner.xlsx", exports.partner_xlsx, name="export_partner_xlsx"),
+    path("exports/partner-sortable.xlsx", exports.partner_sortable_xlsx, name="export_partner_sortable_xlsx"),
     path("exports/archive.csv", archive_views.archive_csv, name="export_archive"),
     # ── JSON API used by the pages ─────────────────────────────────────────
     path("api/items/undo-delete/", api.item_undo_delete, name="api_undo_delete"),

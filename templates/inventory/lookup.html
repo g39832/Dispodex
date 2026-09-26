@@ -21,6 +21,7 @@
         <a href="{% url 'export_csv' %}?scope=active">{% icon "list" %} Spreadsheet (.csv)</a>
         <div class="sep"></div>
         <div class="menu-label">For a partner: what's shown, not sold, no internal info</div>
+        <a href="{% url 'export_partner_sortable_xlsx' %}?{{ page_query }}">{% icon "list" %} Excel to sort &amp; filter, no photos (.xlsx)</a>
         <a href="{% url 'export_partner_xlsx' %}?{{ page_query }}">{% icon "image" %} Excel with photos (.xlsx)</a>
         <a href="{% url 'export_partner_zip' %}?{{ page_query }}">{% icon "archive" %} Folders with photos (.zip)</a>
         <a href="{% url 'export_partner_csv' %}?{{ page_query }}">{% icon "list" %} Spreadsheet (.csv)</a>

@@ -124,6 +124,25 @@ def test_partner_xlsx_and_zip_leave_out_internal_info(client, stock):
     assert "CPU: i5-8350U" in info and not [word for word in INTERNAL_TEXT if word in info]
 
 
+def test_partner_sortable_xlsx_has_filters_numbers_and_no_photos(client, stock, image):
+    import io
+
+    import openpyxl
+    client.post(reverse("api_photo_upload"), {"sku": "LAP-1", "photo": image()})
+    Item.objects.create(sku="SOLD-2", what_is_it="Laptop", status="sold")
+    response = client.get(reverse("export_partner_sortable_xlsx"))
+    assert "inventory_partner_sortable_" in response["Content-Disposition"]
+    sheet = openpyxl.load_workbook(io.BytesIO(b"".join(response.streaming_content))).active
+    headers = [cell.value for cell in sheet[1]]
+    assert headers[0] == "SKU" and "Photos" not in headers and not INTERNAL_HEADERS & set(headers)
+    assert sheet.auto_filter.ref.startswith("A1:") and not sheet._images
+    rows = {row[0]: dict(zip(headers, row)) for row in sheet.iter_rows(min_row=2, values_only=True)}
+    assert set(rows) == {"LAP-1", "LAP-2", "DESK-1"}
+    assert rows["LAP-1"]["Price"] == 120 and rows["LAP-1"]["Qty"] == 1  # real numbers, so they sort properly
+    values = {str(v) for row in rows.values() for v in row.values()}
+    assert not [word for word in INTERNAL_TEXT if word in values]
+
+
 def test_regular_export_still_has_every_column(client, stock):
     header = next(csv_rows(client.get(reverse("export_csv"))))
     assert INTERNAL_HEADERS <= set(header) and header[0] == "SKU"

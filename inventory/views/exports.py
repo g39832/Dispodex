@@ -91,3 +91,11 @@ def partner_xlsx(request):
         handle, as_attachment=True, filename=_partner_name("xlsx"),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+
+def partner_sortable_xlsx(request):
+    handle = exports.sortable_xlsx(_partner_items(request), exports.PARTNER_COLUMNS)
+    return FileResponse(
+        handle, as_attachment=True, filename=exports.filename("inventory_partner_sortable", "all", "xlsx"),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
