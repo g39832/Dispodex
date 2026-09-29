@@ -100,3 +100,9 @@ class Command(BaseCommand):
         finally:
             if worker:
                 worker.stop()
+        # Waitress returns quietly on Ctrl+C (or when the window is told to close), so say so.
+        logger.info("Web server stopped.")
+        self.stdout.write(self.style.WARNING(
+            "Dispodex has stopped (Ctrl+C was pressed in this window, or it was closed). "
+            "Run start.bat to start it again."
+        ))

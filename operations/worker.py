@@ -108,11 +108,12 @@ def worker_alive(max_age_seconds: int = LOOP_SECONDS * 4) -> bool:
 class Worker(threading.Thread):
     def __init__(self):
         super().__init__(name="pinksheet-worker", daemon=True)
-        self._stop = threading.Event()
+        # Not "_stop": threading.Thread uses that name internally (join/is_alive call it).
+        self._stop_event = threading.Event()
         self._lock = _FileLock(Path(settings.DATA_DIR) / ".worker.lock")
 
     def stop(self) -> None:
-        self._stop.set()
+        self._stop_event.set()
         square_queue.wake_event.set()
 
     def run(self) -> None:
@@ -122,7 +123,7 @@ class Worker(threading.Thread):
         logger.info("Background worker started.")
         close_old_connections()
         square_queue.release_unfinished()
-        while not self._stop.is_set():
+        while not self._stop_event.is_set():
             try:
                 close_old_connections()
                 tick()
