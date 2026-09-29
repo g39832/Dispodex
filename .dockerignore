@@ -1,0 +1,24 @@
+# Keep the image small and free of secrets and data: those come from .env and the /data volume.
+.git
+.gitignore
+.gitattributes
+.venv
+venv
+data
+.env
+*.sqlite3
+*.sqlite3-*
+__pycache__
+*.py[cod]
+.pytest_cache
+.coverage
+htmlcov
+tests
+.vscode
+.idea
+.claude
+Thumbs.db
+.DS_Store
+docker-compose.yml
+Dockerfile
+.dockerignore

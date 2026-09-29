@@ -1,5 +1,7 @@
 """Run Dispodex for real: the waitress web server plus the background worker, in one process."""
 import logging
+import os
+import signal
 import socket
 
 from django.conf import settings
@@ -7,6 +9,22 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
 logger = logging.getLogger("pinksheet")
+
+
+def _stop_on_signal(signum, frame):
+    raise KeyboardInterrupt  # waitress shuts down cleanly on this, then the worker stops
+
+
+def _handle_stop_signals() -> None:
+    """Stop cleanly on Ctrl+C and on `docker stop` / service managers (SIGTERM).
+
+    Python only turns SIGINT into KeyboardInterrupt when it wasn't ignored at start-up
+    (it is for background jobs), and never handles SIGTERM, which as PID 1 in a
+    container would otherwise be ignored until Docker kills the process.
+    """
+    for name in ("SIGINT", "SIGTERM"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), _stop_on_signal)
 
 
 def _lan_addresses() -> list[str]:
@@ -82,11 +100,16 @@ class Command(BaseCommand):
             worker.start()
 
         port = options["port"]
+        _handle_stop_signals()
         self.stdout.write(self.style.SUCCESS("Dispodex is running."))
-        self.stdout.write(f"  On this computer:   http://localhost:{port}/")
-        for address in _lan_addresses():
-            self.stdout.write(f"  On the shop network: http://{address}:{port}/")
-        self.stdout.write("  Press Ctrl+C to stop.")
+        if os.environ.get("PINKSHEET_IN_DOCKER"):
+            # The container's own addresses are useless to visitors: point at the server instead.
+            self.stdout.write("  In Docker: open http://<this server's address>:<published port>/ (8765 unless changed).")
+        else:
+            self.stdout.write(f"  On this computer:   http://localhost:{port}/")
+            for address in _lan_addresses():
+                self.stdout.write(f"  On the shop network: http://{address}:{port}/")
+            self.stdout.write("  Press Ctrl+C to stop.")
         try:
             serve(
                 application,
@@ -102,6 +125,9 @@ class Command(BaseCommand):
                 worker.stop()
         # Waitress returns quietly on Ctrl+C (or when the window is told to close), so say so.
         logger.info("Web server stopped.")
+        if os.environ.get("PINKSHEET_IN_DOCKER"):
+            self.stdout.write("Dispodex has stopped.")
+            return
         self.stdout.write(self.style.WARNING(
             "Dispodex has stopped (Ctrl+C was pressed in this window, or it was closed). "
             "Run start.bat to start it again."

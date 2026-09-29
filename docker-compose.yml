@@ -1,0 +1,30 @@
+# Dispodex on a server:   docker compose up -d --build
+# Then open http://<server address>:8765 from any computer or phone on the network.
+# Full guide (moving existing data in, updates, backups): docs/docker.md
+services:
+  dispodex:
+    build: .
+    image: dispodex:latest
+    container_name: dispodex
+    restart: unless-stopped
+    ports:
+      - "${DISPODEX_PORT:-8765}:8765"
+    # Settings and keys (Square, sign-in, business name…). Copy .env.example to .env first.
+    env_file:
+      - .env
+    environment:
+      # Fixed inside the container, whatever .env says (it may hold Windows paths).
+      PINKSHEET_DATA_DIR: /data
+      BACKUP_DIR: /data/backups
+      PINKSHEET_HOST: 0.0.0.0
+      PINKSHEET_PORT: "8765"
+      TZ: ${TZ:-America/Chicago}
+    volumes:
+      # Database, photos, backups and logs live in ./data on the server: back this folder up.
+      - ./data:/data
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

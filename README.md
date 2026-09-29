@@ -48,6 +48,16 @@ Printed QR codes and old bookmarks from the PHP app (`card.php`, `intake.php`, `
 Optional: to start Dispodex automatically with Windows, run
 `scripts\install_startup_task.ps1` once in PowerShell.
 
+## Running on a server with Docker
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Then open `http://<server address>:8765`. The database, photos and backups live in `./data`.
+Moving existing data in, updates and everyday commands: [docs/docker.md](docs/docker.md).
+
 ## Connecting Square (whenever you're ready)
 
 The app works fully without Square. Changes made before Square is connected are queued and sent
