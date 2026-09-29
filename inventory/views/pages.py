@@ -42,6 +42,8 @@ def script_builder(request):
 
 
 def listing_images(request):
+    if not settings.PINKSHEET["LISTING_IMAGES"]:
+        raise Http404("Listing images is turned off for now.")
     sku = normalize_sku(request.GET.get("sku"))
     layout = ListingImageLayout.objects.filter(sku_normalized=sku).first() if sku else None
     photos = list(Photo.objects.filter(sku_normalized=sku)[:50]) if sku else []

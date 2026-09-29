@@ -58,7 +58,8 @@
       answer.value = d.chatgpt_text || '';
       final.value = d.final_text || buildFinal(d.chatgpt_text);
       document.getElementById('script-open-intake').href = '/intake/?sku=' + encodeURIComponent(d.sku);
-      document.getElementById('script-open-images').href = '/listing-images/?sku=' + encodeURIComponent(d.sku);
+      var imagesLink = document.getElementById('script-open-images');  // absent while Listing images is turned off
+      if (imagesLink) imagesLink.href = '/listing-images/?sku=' + encodeURIComponent(d.sku);
       history.replaceState(null, '', '?sku=' + encodeURIComponent(d.sku));
       setState(d.found ? (d.saved_at ? 'Loaded saved script' : 'Prompt ready') : 'No item on file for ' + d.sku, d.found ? 'saved' : 'warn');
     }).catch(function (err) { setState(err.message, 'err'); });

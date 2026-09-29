@@ -171,6 +171,8 @@ PINKSHEET = {
     "MAINTENANCE_MODE": env_bool("PINKSHEET_MAINTENANCE_MODE", False),
     # A public showcase copy filled by `seed_demo`: made-up items, uploads and operator actions off.
     "DEMO_MODE": env_bool("PINKSHEET_DEMO_MODE", False),
+    # The listing-images composer is unfinished: hidden (and its pages turned off) until it's ready.
+    "LISTING_IMAGES": env_bool("PINKSHEET_LISTING_IMAGES", False),
     "MAINTENANCE_MESSAGE": env(
         "PINKSHEET_MAINTENANCE_MESSAGE",
         "Dispodex is temporarily offline for maintenance.",

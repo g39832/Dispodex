@@ -248,7 +248,7 @@
           <label class="check" style="padding:0"><input type="checkbox" id="print-pink"> Print on pink</label>
           <button type="button" class="btn btn-sm" id="print-sticker" data-label-preset="compact">{% icon "tag" %} Print sticker (Zebra)</button>
           <a class="btn btn-sm" id="open-script" href="{% url 'scripts' %}?sku={{ active_sku|urlencode }}">{% icon "script" %} eBay script builder</a>
-          <a class="btn btn-sm" id="open-images" href="{% url 'listing_images' %}?sku={{ active_sku|urlencode }}">{% icon "image" %} Listing images</a>
+          {% if listing_images_enabled %}<a class="btn btn-sm" id="open-images" href="{% url 'listing_images' %}?sku={{ active_sku|urlencode }}">{% icon "image" %} Listing images</a>{% endif %}
           {% if item %}<button type="button" class="btn btn-sm btn-danger" id="delete-item" data-id="{{ item.id }}">{% icon "trash" %} Delete item</button>{% endif %}
         </div>
       </section>

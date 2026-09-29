@@ -628,7 +628,8 @@
     var phoneLink = document.getElementById('open-phone-card');
     if (phoneLink) phoneLink.href = '/m/' + encodeURIComponent(sku) + '/';
     document.getElementById('open-script').href = '/scripts/?sku=' + encodeURIComponent(sku);
-    document.getElementById('open-images').href = '/listing-images/?sku=' + encodeURIComponent(sku);
+    var imagesLink = document.getElementById('open-images');  // absent while Listing images is turned off
+    if (imagesLink) imagesLink.href = '/listing-images/?sku=' + encodeURIComponent(sku);
   }
   updateSkuLinks(currentSku());
 

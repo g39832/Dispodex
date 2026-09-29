@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from functools import wraps
 from pathlib import Path
 
 from django.conf import settings
@@ -288,7 +289,20 @@ def ebay_category_list(request):
 
 
 # ── eBay listing-image composer ──────────────────────────────────────────────
+def listing_images_on(view):
+    """The composer is unfinished and hidden (PINKSHEET_LISTING_IMAGES=0): refuse its actions too."""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not settings.PINKSHEET["LISTING_IMAGES"]:
+            return json_error("Listing images is turned off for now.", 404)
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
 @require_POST
+@listing_images_on
 @not_in_demo
 def listing_image_upload(request):
     sku = normalize_sku(request.POST.get("sku"))
@@ -313,6 +327,7 @@ def listing_image_upload(request):
 
 
 @require_POST
+@listing_images_on
 def listing_image_layout(request, sku):
     sku = normalize_sku(sku)
     body = read_json_body(request)

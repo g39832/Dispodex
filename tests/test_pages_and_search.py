@@ -27,11 +27,26 @@ def stock(db):
 
 
 @pytest.mark.parametrize("url", [
-    "/", "/intake/?new=1", "/lookup/", "/board/", "/archive/", "/scripts/", "/listing-images/",
-    "/listing-images/?sku=LAP-1", "/system/", "/login/",
+    "/", "/intake/?new=1", "/intake/?sku=LAP-1", "/lookup/", "/board/", "/archive/", "/scripts/",
+    "/scripts/?sku=LAP-1", "/system/", "/login/",
 ])
 def test_pages_render(client, stock, url):
+    page = client.get(url)
+    assert page.status_code == 200
+    assert b"Listing images" not in page.content  # hidden until it's finished
+
+
+def test_listing_images_is_off_until_finished(client, stock):
+    assert client.get("/listing-images/").status_code == 404
+    assert client.post("/api/listing-images/upload/", {"sku": "LAP-1"}).status_code == 404
+    assert client.post("/api/listing-images/LAP-1/layout/", "{}", content_type="application/json").status_code == 404
+
+
+@pytest.mark.parametrize("url", ["/listing-images/", "/listing-images/?sku=LAP-1"])
+def test_listing_images_comes_back_with_the_switch(client, stock, settings, url):
+    settings.PINKSHEET = {**settings.PINKSHEET, "LISTING_IMAGES": True}
     assert client.get(url).status_code == 200
+    assert b"Listing images" in client.get("/intake/?sku=LAP-1").content
 
 
 def test_lookup_filters(client, stock):

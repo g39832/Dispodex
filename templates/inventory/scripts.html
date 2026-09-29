@@ -23,7 +23,7 @@
       <button type="submit" class="btn btn-primary">Load item</button>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <a class="btn btn-sm" id="script-open-intake" href="{% url 'intake' %}">Intake sheet</a>
-        <a class="btn btn-sm" id="script-open-images" href="{% url 'listing_images' %}">Listing images</a>
+        {% if listing_images_enabled %}<a class="btn btn-sm" id="script-open-images" href="{% url 'listing_images' %}">Listing images</a>{% endif %}
       </div>
     </form>
     <section class="panel">
