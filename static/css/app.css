@@ -455,11 +455,15 @@ body:has(.bulk-bar:not([hidden])) .toasts { bottom: 84px; }
 .intake-side { position: sticky; top: 20px; display: grid; gap: 14px; align-items: start; max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .sku-input {
   font-size: 26px; font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase;
-  border: 0; padding: 2px 0; background: transparent; color: var(--text); width: 100%; font-family: var(--font);
+  /* A small outlined box so it's obvious where the SKU goes. */
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 6px 12px;
+  background: var(--bg-subtle); color: var(--text); width: min(100%, 380px); font-family: var(--font);
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
 .sku-input::placeholder { color: var(--text-faint); text-transform: none; font-weight: 600; }
-.sku-input:focus { outline: none; }
-.sku-input.is-invalid { box-shadow: inset 0 -2px 0 var(--red); }
+.sku-input:hover { border-color: var(--blue); }
+.sku-input:focus { outline: none; border-color: var(--blue); background: var(--bg); box-shadow: 0 0 0 3px var(--blue-soft); }
+.sku-input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
 .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .title-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .save-state { font-size: 12.5px; color: var(--text-faint); display: inline-flex; align-items: center; gap: 6px; }
