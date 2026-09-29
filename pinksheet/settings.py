@@ -153,6 +153,9 @@ if env_bool("PINKSHEET_BEHIND_HTTPS_PROXY", False):
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
 else:
     # Plain HTTP on the shop's private network: the HTTPS-only checks don't apply.
+    # Browsers ignore this header over plain HTTP (except on localhost) and log a console
+    # warning on every page, so only send it when served over HTTPS.
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
     SILENCED_SYSTEM_CHECKS = ["security.W004", "security.W008", "security.W012", "security.W016"]
 # Card printing uses a same-origin iframe, so framing is SAMEORIGIN rather than DENY (still no other sites).
 SILENCED_SYSTEM_CHECKS = [*globals().get("SILENCED_SYSTEM_CHECKS", []), "security.W019"]
