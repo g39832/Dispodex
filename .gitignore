@@ -3,6 +3,19 @@
 .env
 *.sqlite3
 *.sqlite3-*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.bundle
+*.bak
+# Exports and import files (inventory CSV/Excel, backups sent between computers)
+*.csv
+*.tsv
+*.xlsx
+*.xlsm
+*.xls
+*.zip
 
 # Python
 .venv/
