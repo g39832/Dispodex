@@ -7,6 +7,11 @@ from django.conf import settings
 from core.http import json_error
 
 
+# Tailscale (and other private VPNs) hand out 100.64.0.0/10 addresses. Python doesn't count
+# them as private, but they can only come from devices on the shop's own VPN, never the internet.
+VPN_NETWORK = ipaddress.ip_network("100.64.0.0/10")
+
+
 def is_private_request(request) -> bool:
     remote = (request.META.get("REMOTE_ADDR") or "").strip()
     if not remote:
@@ -15,7 +20,9 @@ def is_private_request(request) -> bool:
         address = ipaddress.ip_address(remote)
     except ValueError:
         return False
-    return address.is_private or address.is_loopback
+    if getattr(address, "ipv4_mapped", None):
+        address = address.ipv4_mapped
+    return address.is_private or address.is_loopback or address in VPN_NETWORK
 
 
 def private_network_only(view):

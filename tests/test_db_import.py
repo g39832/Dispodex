@@ -196,3 +196,18 @@ def test_unreadable_files_are_refused_without_changes(client, name, content, mes
     response = _post(client, name, content)
     assert response.status_code == 400 and message in response.json()["error"]
     assert backups.list_backups() == []
+
+
+@pytest.mark.parametrize("address", ["100.112.51.35", "100.64.0.1", "::ffff:192.168.1.20", "10.42.40.111"])
+def test_import_allowed_from_shop_network_and_vpn(tmp_path, address):
+    """Coworkers reach Dispodex over the shop Wi-Fi or Tailscale (100.64.0.0/10); both may import."""
+    Item.objects.create(sku="keep-1")
+    snapshot = backups.run_backup().path
+    assert _upload(Client(REMOTE_ADDR=address), snapshot).status_code == 200
+
+
+@pytest.mark.parametrize("address", ["8.8.4.4", "100.128.0.1", "1.1.1.1"])
+def test_import_refused_from_the_internet(tmp_path, address):
+    path = tmp_path / "x.sqlite3"
+    path.write_bytes(b"")
+    assert _upload(Client(REMOTE_ADDR=address), path).status_code == 403
