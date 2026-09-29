@@ -262,3 +262,61 @@ def test_status_and_system_endpoints(client, item):
     assert client.get(reverse("api_square_status")).json()["connected"] is False
     assert client.post(reverse("api_square_sync_all")).status_code == 400
     assert client.get(reverse("api_recon_status")).json()["last_run"] is None
+
+
+# ── Square's idempotency keys ───────────────────────────────────────────────
+@responses.activate
+def test_inventory_key_always_matches_the_body_sent(square_settings, item, monkeypatch):
+    """Square rejects a reused key whose body differs (IDEMPOTENCY_KEY_REUSED). The stock count
+    carries occurred_at, which changes on every attempt, so the key must change with it."""
+    mock_happy_sync()
+    square_sync.sync_item(item.sku)
+    moments = iter(["2026-09-29T15:13:00Z", "2026-09-29T15:13:01Z"])
+
+    class Clock:
+        @staticmethod
+        def now(tz=None):
+            class Stamp:
+                def strftime(self, fmt):
+                    return next(moments)
+            return Stamp()
+
+    monkeypatch.setattr(square_sync, "datetime", Clock)
+    responses.post(f"{BASE}/v2/inventory/batch-change", json={"counts": []})
+    responses.post(f"{BASE}/v2/inventory/batch-change", json={"counts": []})
+    assert square_sync.push_inventory(item.sku).status == "ok"
+    assert square_sync.push_inventory(item.sku).status == "ok"
+
+    bodies = [json.loads(c.request.body) for c in responses.calls if c.request.url.endswith("/inventory/batch-change")][-2:]
+    assert bodies[0]["changes"] != bodies[1]["changes"]
+    assert bodies[0]["idempotency_key"] != bodies[1]["idempotency_key"]
+    for body in bodies:
+        expected = hashlib.sha256(f"ABC-1:{json.dumps(body['changes'], sort_keys=True)}".encode()).hexdigest()[:28]
+        assert body["idempotency_key"] == f"pink-inv-{expected}"
+
+
+@responses.activate
+def test_simultaneous_syncs_of_one_sku_send_it_once(square_settings, item):
+    """Sync Square now, the queue and reconciliation can reach the same SKU at once."""
+    import threading
+
+    from django.db import connection
+
+    mock_happy_sync()
+    results = []
+
+    def run():
+        try:
+            results.append(square_sync.sync_item(item.sku).status)
+        finally:
+            connection.close()
+
+    threads = [threading.Thread(target=run) for _ in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    upserts = [c for c in responses.calls if c.request.url.endswith("/v2/catalog/object")]
+    assert len(upserts) == 1
+    assert sorted(results) == ["ok", "skipped", "skipped"]

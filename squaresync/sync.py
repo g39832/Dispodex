@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import secrets
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone as dt_timezone
@@ -268,25 +269,23 @@ def target_quantity(item: Item, config: SquareConfig) -> int:
 
 def set_inventory_count(client: SquareClient, config: SquareConfig, variation_id: str, item: Item, hash_value: str) -> int:
     quantity = target_quantity(item, config)
-    key = hashlib.sha256(f"{item.sku_normalized}:{variation_id}:{quantity}:{hash_value}".encode()).hexdigest()[:28]
-    client.post(
-        "/v2/inventory/batch-change",
+    changes = [
         {
-            "idempotency_key": f"pink-inv-{key}",
-            "changes": [
-                {
-                    "type": "PHYSICAL_COUNT",
-                    "physical_count": {
-                        "catalog_object_id": variation_id,
-                        "location_id": config.location_id,
-                        "quantity": str(quantity),
-                        "state": "IN_STOCK",
-                        "occurred_at": datetime.now(dt_timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    },
-                }
-            ],
-        },
-    )
+            "type": "PHYSICAL_COUNT",
+            "physical_count": {
+                "catalog_object_id": variation_id,
+                "location_id": config.location_id,
+                "quantity": str(quantity),
+                "state": "IN_STOCK",
+                "occurred_at": datetime.now(dt_timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
+        }
+    ]
+    # The key must cover everything sent, occurred_at included: Square refuses a reused key
+    # whose body differs (IDEMPOTENCY_KEY_REUSED), and occurred_at changes on every attempt.
+    # The client's own retries resend this exact body, so they stay idempotent.
+    key = hashlib.sha256(f"{item.sku_normalized}:{json.dumps(changes, sort_keys=True)}".encode()).hexdigest()[:28]
+    client.post("/v2/inventory/batch-change", {"idempotency_key": f"pink-inv-{key}", "changes": changes})
     return quantity
 
 
@@ -303,10 +302,29 @@ def audit(operation: str, sku: str, direction: str, status: str, started: float,
 
 
 # ── main entry points ────────────────────────────────────────────────────────
+# One Square push per SKU at a time. "Sync Square now", the queue worker and the daily
+# reconciliation can all reach the same SKU together; the second one then waits, sees the
+# first already sent the latest details, and skips instead of sending them again.
+_sku_locks: dict[str, threading.Lock] = {}
+_sku_locks_guard = threading.Lock()
+
+
+def _lock_for(sku: str) -> threading.Lock:
+    with _sku_locks_guard:
+        return _sku_locks.setdefault(sku, threading.Lock())
+
+
 def sync_item(sku: str, client: SquareClient | None = None, config: SquareConfig | None = None) -> SyncResult:
     """Create or update the Square catalog item, photo and stock count for one SKU."""
-    started = time.monotonic()
     sku = normalize_sku(sku)
+    if not sku:
+        return SyncResult("skipped", "SKU is empty")
+    with _lock_for(sku):
+        return _sync_item(sku, client, config)
+
+
+def _sync_item(sku: str, client: SquareClient | None, config: SquareConfig | None) -> SyncResult:
+    started = time.monotonic()
     cid = correlation_id()
     config = config or get_config()
     if not sku:
@@ -401,7 +419,8 @@ def push_inventory(sku: str, client: SquareClient | None = None, config: SquareC
         return SyncResult("skipped", "SKU not found")
     client = client or SquareClient(config)
     try:
-        quantity = set_inventory_count(client, config, mapping.square_variation_id, item, mapping.payload_hash)
+        with _lock_for(sku):
+            quantity = set_inventory_count(client, config, mapping.square_variation_id, item, mapping.payload_hash)
     except SquareError as exc:
         return SyncResult("error", str(exc))
     mapping.last_inventory_sync_at = timezone.now()
