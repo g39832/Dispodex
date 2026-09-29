@@ -37,10 +37,15 @@
       var file = importFile.files[0];
       importFile.value = '';
       if (!file) return;
+      var isDatabase = /\.(sqlite3?|db)$/i.test(file.name);
       P.confirm({
         title: 'Import ' + file.name + '?',
-        body: 'A Dispodex database replaces all current items, photos list, history and settings with the ones in this file. ' +
-          'An old Pinksheet database replaces the current items with its items. A backup is made first so this can be undone.',
+        body: (isDatabase
+          ? 'A Dispodex database replaces all current items, photos list, history and settings with the ones in this file. ' +
+            'An old Pinksheet database replaces the current items with its items. '
+          : 'Each row is matched by SKU: new SKUs are added and existing ones updated with the values in the file. ' +
+            'Blank cells don’t erase anything, and items not in the file are left alone. ') +
+          'A backup is made first so this can be undone.',
         confirmLabel: 'Import',
         danger: true,
         typeToConfirm: 'IMPORT'
@@ -53,8 +58,9 @@
         form.append('file', file);
         P.api('/api/ops/import-database/', { method: 'POST', form: form })
           .then(function (d) {
-            P.toast('Imported ' + d.items + ' items. Previous data saved as ' + d.backup);
-            setTimeout(function () { location.reload(); }, 1800);
+            // Show the whole report (skipped rows, values kept in notes…) until it's read.
+            P.confirm({ title: 'Import finished', body: (d.messages || []).join(' '), confirmLabel: 'OK' })
+              .then(function () { location.reload(); });
           })
           .catch(function (err) {
             P.toast(err.message, 'err');

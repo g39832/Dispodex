@@ -1,13 +1,17 @@
-"""Import a whole database from the System page ("Import database").
+"""The System page's "Import database" button.
 
-Two kinds of file are accepted, recognised by their tables rather than their name:
+Databases are recognised by their tables rather than their name:
 
 * a **Dispodex database** (``pinksheet.sqlite3``, or any file from ``data/backups``,
   e.g. from another computer): it replaces the current database;
 * an **old PHP Pinksheet database** (``intake.sqlite``): its items, photos list,
   drafts, scripts, archive and Square records are copied in by the legacy importer.
 
-Either way a verified backup is made first, so an import can always be undone
+Anything else that is a common table format (CSV, TSV, Excel .xlsx, JSON) is
+merged in row by row by ``operations.sheet_import``: new SKUs are added and
+known SKUs updated, the rest is left alone.
+
+Every time a verified backup is made first, so an import can always be undone
 with ``manage.py restore_backup``. Photo files live on disk, not in the
 database, so they are not part of an import.
 """
@@ -29,7 +33,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.utils import timezone
 
 from inventory.models import Item
-from operations import backups
+from operations import backups, sheet_import
 from operations.legacy_import import run_import
 from operations.models import SystemState
 
@@ -61,10 +65,10 @@ def _tables(path: Path) -> set[str]:
 
 
 def detect_kind(path: Path) -> str:
-    """'dispodex' or 'legacy'. Raises ImportRefused for anything else."""
+    """'dispodex', 'legacy' or 'sheet'. Raises ImportRefused for anything else."""
     with path.open("rb") as handle:
         if handle.read(len(SQLITE_HEADER)) != SQLITE_HEADER:
-            raise ImportRefused("That file isn't a database. Choose a .sqlite3 or .sqlite file.")
+            return "sheet"
     if not backups.integrity_ok(path):
         raise ImportRefused("That database is damaged (it failed SQLite's integrity check).")
     tables = _tables(path)
@@ -139,39 +143,57 @@ def import_database(path: Path, *, original_name: str, actor: str) -> ImportOutc
         kind = detect_kind(path)
         if kind == "dispodex":
             _check_version(path)
+        elif kind == "sheet":
+            try:
+                headers, rows = sheet_import.read(path, original_name)
+            except sheet_import.SheetError as exc:
+                raise ImportRefused(str(exc)) from exc
 
         safety = backups.run_backup()
         if not safety.ok or safety.path is None:
             raise ImportRefused(f"The safety backup failed ({safety.error}), so nothing was imported.")
 
-        with tempfile.TemporaryDirectory(prefix="dispodex-import-") as tmp:
-            workdir = Path(tmp)
+        if kind == "sheet":
             try:
-                if kind == "dispodex":
-                    expected = _item_count(path)
-                    _replace_live_database(path, workdir)
-                    call_command("migrate", interactive=False, verbosity=0)
-                    items = Item.all_objects.count()
-                    if items != expected:
-                        raise RuntimeError(f"expected {expected} items after the import but found {items}")
-                    messages = [f"{items} items imported from {original_name}.",
-                                "Photo files aren't stored in a database: photos added on another computer need copying separately."]
-                else:
-                    # The legacy importer reads an old app folder: <root>/data/intake.sqlite.
-                    (workdir / "data").mkdir()
-                    shutil.copy2(path, workdir / "data" / "intake.sqlite")
-                    summary = run_import(workdir, replace=True)
-                    items = summary.items
-                    messages = summary.lines()
+                report = sheet_import.apply(headers, rows, source=original_name)
             except Exception as exc:
-                logger.exception("Database import from %s failed; putting back %s", original_name, safety.path.name)
-                _replace_live_database(safety.path, workdir)
-                raise ImportRefused(f"The import failed ({exc}). Your data was put back as it was.") from exc
+                # One transaction: a failure part-way undoes every row by itself.
+                logger.exception("Spreadsheet import from %s failed", original_name)
+                raise ImportRefused(f"The import failed ({exc}). Nothing was changed.") from exc
+            items = report.created + report.updated
+            messages = report.lines()
+        else:
+            items, messages = _import_sqlite(kind, path, original_name, safety.path)
 
         messages.append(f"The data from before the import is saved as {safety.path.name}.")
         SystemState.set(LAST_IMPORT_KEY, f"{original_name} · {actor} · {timezone.localtime():%b %d, %Y %I:%M %p}")
-        logger.info("Database imported by %s from %s (%s, %s items); previous data backed up as %s",
+        logger.info("Import by %s from %s (%s, %s items); previous data backed up as %s",
                     actor, original_name, kind, items, safety.path.name)
         return ImportOutcome(kind=kind, items=items, backup=safety.path.name, messages=messages)
     finally:
         _running.release()
+
+
+def _import_sqlite(kind: str, path: Path, original_name: str, safety: Path) -> tuple[int, list[str]]:
+    """Import a Dispodex or old Pinksheet database; on failure put ``safety`` back."""
+    with tempfile.TemporaryDirectory(prefix="dispodex-import-") as tmp:
+        workdir = Path(tmp)
+        try:
+            if kind == "dispodex":
+                expected = _item_count(path)
+                _replace_live_database(path, workdir)
+                call_command("migrate", interactive=False, verbosity=0)
+                items = Item.all_objects.count()
+                if items != expected:
+                    raise RuntimeError(f"expected {expected} items after the import but found {items}")
+                return items, [f"{items} items imported from {original_name}.",
+                               "Photo files aren't stored in a database: photos added on another computer need copying separately."]
+            # The legacy importer reads an old app folder: <root>/data/intake.sqlite.
+            (workdir / "data").mkdir()
+            shutil.copy2(path, workdir / "data" / "intake.sqlite")
+            summary = run_import(workdir, replace=True)
+            return summary.items, summary.lines()
+        except Exception as exc:
+            logger.exception("Database import from %s failed; putting back %s", original_name, safety.name)
+            _replace_live_database(safety, workdir)
+            raise ImportRefused(f"The import failed ({exc}). Your data was put back as it was.") from exc

@@ -46,9 +46,12 @@ def verify_backup(request):
 def import_database(request):
     upload = request.FILES.get("file")
     if upload is None:
-        return json_error("Choose a database file to import.")
+        return json_error("Choose a file to import.")
+    suffix = Path(upload.name).suffix.lower()
+    if not suffix[1:].isalnum():
+        suffix = ""
     with tempfile.TemporaryDirectory(prefix="dispodex-upload-") as tmp:
-        path = Path(tmp) / "upload.sqlite3"
+        path = Path(tmp) / f"upload{suffix}"  # keep the extension: the Excel reader checks it
         with path.open("wb") as handle:
             for chunk in upload.chunks():
                 handle.write(chunk)
