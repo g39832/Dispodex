@@ -37,6 +37,13 @@
       var file = importFile.files[0];
       importFile.value = '';
       if (!file) return;
+      var maxBytes = Number(importFile.dataset.maxBytes) || 0;
+      if (maxBytes && file.size > maxBytes) {
+        // The server would cut the upload off with no explanation, so say why here.
+        P.toast(file.name + ' is ' + Math.round(file.size / 1048576) + ' MB; the most that can be imported is ' +
+          Math.round(maxBytes / 1048576) + ' MB. Photos can’t be imported from a file anyway, so use the CSV or the Excel without photos.', 'err');
+        return;
+      }
       var isDatabase = /\.(sqlite3?|db)$/i.test(file.name);
       P.confirm({
         title: 'Import ' + file.name + '?',
@@ -59,7 +66,8 @@
         P.api('/api/ops/import-database/', { method: 'POST', form: form })
           .then(function (d) {
             // Show the whole report (skipped rows, values kept in notes…) until it's read.
-            P.confirm({ title: 'Import finished', body: (d.messages || []).join(' '), confirmLabel: 'OK' })
+            var nothing = d.kind === 'sheet' && !d.items;
+            P.confirm({ title: nothing ? 'Import finished — already up to date' : 'Import finished', body: (d.messages || []).join(' '), confirmLabel: 'OK' })
               .then(function () { location.reload(); });
           })
           .catch(function (err) {

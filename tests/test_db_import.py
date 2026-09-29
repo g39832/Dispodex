@@ -144,7 +144,7 @@ def test_values_that_dont_fit_go_to_notes_and_reimport_changes_nothing(client):
     assert "Condition: Shiny" in item.notes and "Price: about 20" in item.notes
 
     response = _post(client, "a.csv", csv_text.encode())
-    assert "1 already up to date" in response.json()["messages"][0]
+    assert "Nothing needed changing: all 1 rows" in response.json()["messages"][0]
     assert Item.objects.get(sku_normalized="X-1").notes.count("Condition: Shiny") == 1
 
 

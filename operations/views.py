@@ -41,6 +41,10 @@ def verify_backup(request):
     return json_ok(**{k: v for k, v in outcome.items() if k != "ok"})
 
 
+# The web server drops bodies bigger than this (see serve.py), leaving room for the form around the file.
+IMPORT_MAX_BYTES = settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 15 * 1024 * 1024
+
+
 @require_POST
 @private_network_only
 def import_database(request):
@@ -90,6 +94,7 @@ def system(request):
             "backup_hour": settings.PINKSHEET["BACKUP_HOUR"],
             "backup_path": settings.BACKUP_DIR,
             "last_import": SystemState.get(db_import.LAST_IMPORT_KEY),
+            "import_max_bytes": IMPORT_MAX_BYTES,
         },
     )
 

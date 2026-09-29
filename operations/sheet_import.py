@@ -104,7 +104,12 @@ class SheetReport:
     kept_in_notes: int = 0
 
     def lines(self) -> list[str]:
-        lines = [f"{self.rows} rows read: {self.created} new items, {self.updated} updated, {self.unchanged} already up to date."]
+        if not self.created and not self.updated and self.unchanged:
+            # Common when re-importing an export of this same Dispodex: say so plainly,
+            # otherwise "0 new, 0 updated" reads like the file was rejected.
+            lines = [f"Nothing needed changing: all {self.unchanged} rows in this file already match what's in Dispodex."]
+        else:
+            lines = [f"{self.rows} rows read: {self.created} new items, {self.updated} updated, {self.unchanged} already up to date."]
         if self.skipped:
             lines.append(f"{len(self.skipped)} rows skipped: " + "; ".join(self.skipped[:5]) + (" …" if len(self.skipped) > 5 else ""))
         if self.unknown_columns:

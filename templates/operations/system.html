@@ -11,7 +11,7 @@
     <button type="button" class="btn" data-run-backup>{% icon "download" %} Back up now</button>
     <button type="button" class="btn" data-verify-backup>{% icon "check" %} Verify latest backup</button>
     <button type="button" class="btn" id="import-database">{% icon "upload" %} Import database</button>
-    <input type="file" id="import-database-file" accept=".sqlite3,.sqlite,.db,.csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods,.json" hidden>
+    <input type="file" id="import-database-file" data-max-bytes="{{ import_max_bytes }}"accept=".sqlite3,.sqlite,.db,.csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods,.json" hidden>
   </div>
 </div>
 
