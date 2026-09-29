@@ -1,5 +1,7 @@
 """Backups, health, the System page, QZ Tray signing, and redirects for old PHP links."""
 import base64
+import tempfile
+from pathlib import Path
 from urllib.parse import urlencode
 
 from cryptography.hazmat.primitives import hashes, serialization
@@ -14,7 +16,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from core.http import json_error, json_ok, read_json_body
 from core.network import private_network_only
-from operations import backups, health
+from operations import backups, db_import, health
+from operations.models import SystemState
 from squaresync.config import get_config
 from squaresync.models import ReconciliationRun, SyncAuditLog, SyncJob, WebhookEvent
 
@@ -36,6 +39,24 @@ def verify_backup(request):
     if not outcome["ok"]:
         return json_error("; ".join(outcome["messages"]), 500, **outcome)
     return json_ok(**{k: v for k, v in outcome.items() if k != "ok"})
+
+
+@require_POST
+@private_network_only
+def import_database(request):
+    upload = request.FILES.get("file")
+    if upload is None:
+        return json_error("Choose a database file to import.")
+    with tempfile.TemporaryDirectory(prefix="dispodex-upload-") as tmp:
+        path = Path(tmp) / "upload.sqlite3"
+        with path.open("wb") as handle:
+            for chunk in upload.chunks():
+                handle.write(chunk)
+        try:
+            outcome = db_import.import_database(path, original_name=upload.name, actor=request.actor)
+        except db_import.ImportRefused as exc:
+            return json_error(str(exc))
+    return json_ok(kind=outcome.kind, items=outcome.items, backup=outcome.backup, messages=outcome.messages)
 
 
 @require_GET
@@ -65,6 +86,7 @@ def system(request):
             "suggested_webhook_url": request.build_absolute_uri(reverse("square_webhook")).replace("http://", "https://"),
             "backup_hour": settings.PINKSHEET["BACKUP_HOUR"],
             "backup_path": settings.BACKUP_DIR,
+            "last_import": SystemState.get(db_import.LAST_IMPORT_KEY),
         },
     )
 

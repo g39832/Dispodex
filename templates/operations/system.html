@@ -10,6 +10,8 @@
   <div class="head-actions">
     <button type="button" class="btn" data-run-backup>{% icon "download" %} Back up now</button>
     <button type="button" class="btn" data-verify-backup>{% icon "check" %} Verify latest backup</button>
+    <button type="button" class="btn" id="import-database">{% icon "upload" %} Import database</button>
+    <input type="file" id="import-database-file" accept=".sqlite3,.sqlite,.db" hidden>
   </div>
 </div>
 
@@ -95,6 +97,7 @@
 <section class="section">
   <div class="section-head"><h2 class="section-title">{% icon "shield" %} Backups</h2></div>
   <p class="muted" style="margin-bottom:10px">Automatic every night at {{ backup_hour }}:00 when Dispodex is running. Stored in <code>{{ backup_path }}</code>{% if report.backup.free_percent is not None %} · {{ report.backup.free_percent }}% disk free{% endif %}.</p>
+  <p class="muted" style="margin-bottom:10px"><strong>Import database</strong> (top of this page) replaces the current data with a Dispodex database or backup, or copies in an old Pinksheet <code>intake.sqlite</code>. A backup is made first, so it can be undone.{% if last_import %} Last import: {{ last_import }}.{% endif %}</p>
   {% if backups %}
   <div class="table-wrap"><table class="table">
     <thead><tr><th>File</th><th class="right">Size</th></tr></thead>

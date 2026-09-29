@@ -56,6 +56,7 @@ urlpatterns = [
     path("api/health/", ops_views.health_json, name="api_health"),
     path("api/ops/backup/", ops_views.backup_now, name="api_backup"),
     path("api/ops/verify/", ops_views.verify_backup, name="api_verify"),
+    path("api/ops/import-database/", ops_views.import_database, name="api_import_database"),
     path("api/square/status/", square_views.status, name="api_square_status"),
     path("api/square/sync-all/", square_views.sync_all, name="api_square_sync_all"),
     path("api/square/queue-all/", square_views.queue_everything, name="api_square_queue_all"),
