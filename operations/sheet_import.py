@@ -161,22 +161,40 @@ def _read_delimited(path: Path) -> tuple[list[str], list[dict]]:
     return _table(records[0], records[1:])
 
 
-def _read_xlsx(path: Path) -> tuple[list[str], list[dict]]:
+def _openpyxl_records(path: Path) -> list[list]:
     from openpyxl import load_workbook
 
+    book = load_workbook(path, read_only=True, data_only=True)
     try:
-        book = load_workbook(path, read_only=True, data_only=True)
-    except Exception:  # noqa: BLE001 — the old app's export can't be opened by openpyxl
+        return [list(r) for r in book.worksheets[0].iter_rows(values_only=True)]
+    finally:
+        book.close()
+
+
+def is_old_app_export(path: Path) -> bool:
+    """True for the old PHP app's "Excel with photos" export, which openpyxl can't read
+    (its columns after Z are named "[", "\\" …) but ``excel_import`` can, photos included."""
+    try:
+        _openpyxl_records(path)
+        return False
+    except Exception:  # noqa: BLE001 — any openpyxl failure: try the old-export reader
+        try:
+            excel_import.read_workbook(path)[2].close()
+            return True
+        except excel_import.ExcelImportError:
+            return False
+
+
+def _read_xlsx(path: Path) -> tuple[list[str], list[dict]]:
+    try:
+        records = _openpyxl_records(path)
+    except Exception:  # noqa: BLE001 — the old app's export fails partway through reading
         try:
             headers, rows, book = excel_import.read_workbook(path)
         except excel_import.ExcelImportError as exc:
             raise SheetError(f"That Excel file can't be read: {exc}") from exc
         book.close()
         return headers, [row.values for row in rows]
-    try:
-        records = [list(r) for r in book.worksheets[0].iter_rows(values_only=True)]
-    finally:
-        book.close()
     while records and not any(_text(v) for v in records[0]):
         records.pop(0)
     if not records:

@@ -33,7 +33,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.utils import timezone
 
 from inventory.models import Item
-from operations import backups, sheet_import
+from operations import backups, excel_import, sheet_import
 from operations.legacy_import import run_import
 from operations.models import SystemState
 
@@ -143,17 +143,40 @@ def import_database(path: Path, *, original_name: str, actor: str) -> ImportOutc
         kind = detect_kind(path)
         if kind == "dispodex":
             _check_version(path)
-        elif kind == "sheet":
-            try:
-                headers, rows = sheet_import.read(path, original_name)
-            except sheet_import.SheetError as exc:
-                raise ImportRefused(str(exc)) from exc
+        old_export_with_photos = False
+        if kind == "sheet":
+            old_export_with_photos = (Path(original_name).suffix.lower() in (".xlsx", ".xlsm")
+                                      and sheet_import.is_old_app_export(path))
+            if old_export_with_photos and Item.all_objects.exists():
+                # Merging it would bury every item's notes in the old app's extra columns.
+                raise ImportRefused(
+                    "This is the old Pinksheet's Excel export. It can only fill an empty Dispodex (it brings the "
+                    "photos too). To update a Dispodex that already has items, import a Dispodex backup "
+                    "(.sqlite3) or a CSV exported from Dispodex instead.")
+            if not old_export_with_photos:
+                try:
+                    headers, rows = sheet_import.read(path, original_name)
+                except sheet_import.SheetError as exc:
+                    raise ImportRefused(str(exc)) from exc
 
         safety = backups.run_backup()
         if not safety.ok or safety.path is None:
             raise ImportRefused(f"The safety backup failed ({safety.error}), so nothing was imported.")
 
-        if kind == "sheet":
+        if old_export_with_photos:
+            # A fresh Dispodex and the old app's "Excel with photos" export: bring the photos too.
+            try:
+                old = excel_import.run(path, replace=False, actor=actor)
+            except Exception as exc:
+                logger.exception("Old-app Excel import from %s failed", original_name)
+                raise ImportRefused(f"The import failed ({exc}). Nothing was changed.") from exc
+            items = old.items
+            messages = [f"{old.items} items and {old.photos} photos imported from {original_name} "
+                        "(photos from this export are small previews, marked low-res)."]
+            problems = excel_import.verify(path)
+            if problems:
+                messages.append(f"{len(problems)} difference(s) found when checking against the file, e.g. {problems[0]}")
+        elif kind == "sheet":
             try:
                 report = sheet_import.apply(headers, rows, source=original_name)
             except Exception as exc:

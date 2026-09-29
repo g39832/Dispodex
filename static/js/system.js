@@ -41,7 +41,7 @@
       if (maxBytes && file.size > maxBytes) {
         // The server would cut the upload off with no explanation, so say why here.
         P.toast(file.name + ' is ' + Math.round(file.size / 1048576) + ' MB; the most that can be imported is ' +
-          Math.round(maxBytes / 1048576) + ' MB. Photos can’t be imported from a file anyway, so use the CSV or the Excel without photos.', 'err');
+          Math.round(maxBytes / 1048576) + ' MB. Use the CSV or the Excel without photos instead.', 'err');
         return;
       }
       var isDatabase = /\.(sqlite3?|db)$/i.test(file.name);

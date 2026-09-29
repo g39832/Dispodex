@@ -93,7 +93,7 @@ class Command(BaseCommand):
                 host=options["host"],
                 port=port,
                 threads=options["threads"],
-                max_request_body_size=settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 16 * 1024 * 1024,
+                max_request_body_size=settings.MAX_REQUEST_BODY_SIZE,
                 channel_timeout=300,
                 ident="Dispodex",
             )

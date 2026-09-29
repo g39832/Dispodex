@@ -139,6 +139,9 @@ MEDIA_URL = "/media/"  # photos are served by views, never directly
 DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
+# The largest request the web server accepts. Imports can be big (the Excel export with photos
+# is often ~100 MB); bodies this size are spooled to disk, not held in memory.
+MAX_REQUEST_BODY_SIZE = 1024 * 1024 * 1024
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

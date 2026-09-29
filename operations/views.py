@@ -42,7 +42,7 @@ def verify_backup(request):
 
 
 # The web server drops bodies bigger than this (see serve.py), leaving room for the form around the file.
-IMPORT_MAX_BYTES = settings.DATA_UPLOAD_MAX_MEMORY_SIZE + 15 * 1024 * 1024
+IMPORT_MAX_BYTES = settings.MAX_REQUEST_BODY_SIZE - 1024 * 1024
 
 
 @require_POST

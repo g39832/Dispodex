@@ -211,3 +211,35 @@ def test_import_refused_from_the_internet(tmp_path, address):
     path = tmp_path / "x.sqlite3"
     path.write_bytes(b"")
     assert _upload(Client(REMOTE_ADDR=address), path).status_code == 403
+
+
+# ── the old app's "Excel with photos" export through the button ─────────────
+def test_old_excel_export_fills_an_empty_dispodex_with_photos(client, tmp_path):
+    from tests.test_excel_import import build_export, jpeg, row
+
+    path = build_export(tmp_path / "old.xlsx", [row("LAP-1"), row("LAP-2")], {2: [jpeg((200, 0, 0))]})
+
+    response = _post(client, "inventory_photos.xlsx", path.read_bytes())
+
+    assert response.status_code == 200, response.content
+    assert "2 items and 1 photos" in response.json()["messages"][0]
+    assert Item.objects.count() == 2
+    from inventory.models import Photo
+    assert Photo.objects.get().sku_normalized == "LAP-1"
+
+
+def test_old_excel_export_is_refused_when_dispodex_has_items(client, tmp_path):
+    from tests.test_excel_import import build_export, row
+
+    Item.objects.create(sku="keep-1", what_is_it="Laptop", notes="")
+    path = build_export(tmp_path / "old.xlsx", [row("KEEP-1")], {})
+
+    response = _post(client, "inventory_photos.xlsx", path.read_bytes())
+
+    assert response.status_code == 400 and "only fill an empty Dispodex" in response.json()["error"]
+    assert Item.objects.get().notes == "" and backups.list_backups() == []
+
+
+def test_system_page_tells_the_browser_the_upload_limit(client, settings):
+    html = client.get(reverse("system")).content.decode()
+    assert f'data-max-bytes="{settings.MAX_REQUEST_BODY_SIZE - 1024 * 1024}"' in html
