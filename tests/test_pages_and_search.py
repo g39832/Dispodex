@@ -256,3 +256,12 @@ def test_ebay_wording_comes_from_the_private_file(settings, tmp_path):
     assert scripts.final_boilerplate() == scripts.DEFAULT_BOILERPLATE  # no file yet: generic example
     custom.write_text("Our policies\nShips Mon-Fri\n", encoding="utf-8")
     assert scripts.build_final_script("Great laptop") == "Our policies\nShips Mon-Fri\n\nGreat laptop"
+
+
+def test_prints_show_active_inactive(client, stock):
+    Item.objects.filter(sku_normalized="LAP-1").update(reviewed=1)
+    Item.objects.filter(sku_normalized="LAP-2").update(reviewed=2)  # what saving into the Sold lane sets
+    assert b'id="print-review" data-reviewed="1"' in client.get("/intake/?sku=LAP-1").content
+    assert b'data-reviewed="0"' in client.get("/intake/?new=1").content
+    assert b'<span class="pill">ACTIVE</span>' in client.get("/print/LAP-1/").content
+    assert b'<span class="pill">SOLD</span>' in client.get("/print/LAP-2/").content

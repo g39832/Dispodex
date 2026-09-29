@@ -673,6 +673,13 @@
     };
     set('sku', currentSku());
     set('status', statusSelect.options[statusSelect.selectedIndex].text);
+    // ACTIVE / INACTIVE / SOLD, as the board shows it. Same rule as saving: the Sold lane means SOLD,
+    // and leaving Sold drops back to INACTIVE.
+    var review = document.getElementById('print-review');
+    if (review) {
+      var saved = Number(review.getAttribute('data-reviewed'));
+      review.textContent = statusSelect.value === 'sold' ? 'SOLD' : saved === 1 ? 'ACTIVE' : 'INACTIVE';
+    }
     set('price', data.price ? '$' + Number(data.price).toFixed(2) : '');
     set('quantity', data.quantity);
     set('what_is_it', data.what_is_it);

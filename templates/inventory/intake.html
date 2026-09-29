@@ -271,7 +271,7 @@
     <div class="print-thumb">{% if print_thumb %}<img src="{% url 'photo' print_thumb.id %}" alt="">{% endif %}</div>
     <div class="print-ident">
       <div class="print-sku" data-print="sku"></div>
-      <div class="print-line"><b>Status</b> <span data-print="status"></span></div>
+      <div class="print-line"><b>Status</b> <span data-print="status"></span> <span class="print-pill" id="print-review" data-reviewed="{{ item.reviewed|default:0 }}"></span></div>
       <div class="print-line"><b>Price</b> <span data-print="price"></span> &nbsp; <b>Qty</b> <span data-print="quantity"></span></div>
       <div class="print-line"><b>What is it?</b> <span data-print="what_is_it"></span></div>
     </div>
