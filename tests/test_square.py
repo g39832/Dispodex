@@ -320,3 +320,43 @@ def test_simultaneous_syncs_of_one_sku_send_it_once(square_settings, item):
     upserts = [c for c in responses.calls if c.request.url.endswith("/v2/catalog/object")]
     assert len(upserts) == 1
     assert sorted(results) == ["ok", "skipped", "skipped"]
+
+
+# ── "Sync Square now" runs in the background with progress ──────────────────
+def test_full_sync_runs_in_background_and_reports_progress(client, square_settings, monkeypatch):
+    import threading
+
+    from squaresync import full_sync
+
+    for n in range(3):
+        Item.objects.create(sku=f"FS-{n}", what_is_it="Laptop")
+    release = threading.Event()
+    calls = []
+
+    def fake_sync(sku, config=None, client=None):
+        calls.append(sku)
+        release.wait(5)
+        if sku == "FS-1":
+            raise RuntimeError("boom")  # one bad SKU must not stop the rest
+        return square_sync.SyncResult("ok" if sku == "FS-0" else "skipped", "")
+
+    monkeypatch.setattr(square_sync, "sync_item", fake_sync)
+
+    first = client.post(reverse("api_square_sync_all"), HTTP_COOKIE="ps_name=Sam").json()
+    assert first["started"] is True and first["running"] is True and first["total"] == 3
+    assert first["started_by"] == "Sam"
+
+    again = client.post(reverse("api_square_sync_all")).json()  # a second click while it runs
+    assert again["ok"] is True and again["started"] is False and again["running"] is True
+
+    release.set()
+    full_sync.wait(10)
+    done = client.get(reverse("api_square_sync_progress")).json()
+    assert done["running"] is False and done["done"] == 3
+    assert (done["updated"], done["skipped"], done["error"]) == (1, 1, 1)
+    assert done["errors"][0]["sku"] == "FS-1" and "boom" in done["errors"][0]["message"]
+    assert sorted(calls) == ["FS-0", "FS-1", "FS-2"]  # only one sync ran
+
+
+def test_full_sync_progress_before_any_sync(client):
+    assert client.get(reverse("api_square_sync_progress")).json()["running"] is False

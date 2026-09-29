@@ -28,18 +28,15 @@
         .finally(doneVerify);
     }
     var syncBtn = e.target.closest('[data-square-sync]');
-    if (syncBtn) {
-      var doneSync = busy(syncBtn, 'Syncing…');
+    if (syncBtn && !syncBtn.disabled) {
+      syncBtn.disabled = true;
       P.api('/api/square/sync-all/', { method: 'POST', body: {} })
         .then(function (data) {
-          var s = data.summary || {};
-          var msg = 'Square sync: ' + (s.ok || 0) + ' updated, ' + (s.skipped || 0) + ' unchanged';
-          if (s.error) msg += ', ' + s.error + ' failed';
-          P.toast(msg, s.error ? 'err' : 'ok');
-          refreshSquare();
+          if (!data.started) P.toast('A Square sync is already running (' + countText(data) + ')' + byWhom(data) + '.');
+          showSyncProgress(data);
+          followSync();
         })
-        .catch(function (err) { P.toast(err.message, 'err'); })
-        .finally(doneSync);
+        .catch(function (err) { syncBtn.disabled = false; P.toast(err.message, 'err'); });
     }
     var reconBtn = e.target.closest('[data-recon-run]');
     if (reconBtn) {
@@ -51,6 +48,49 @@
         .finally(doneRecon);
     }
   });
+
+  /* "Sync Square now" runs on the server in the background; follow its progress. */
+  var syncButton = document.querySelector('[data-square-sync]');
+  var syncLabel = syncButton ? syncButton.innerHTML : '';
+  var following = null;
+  function countText(d) { return (d.done || 0).toLocaleString() + ' of ' + (d.total || 0).toLocaleString(); }
+  function byWhom(d) { return d.started_by ? ', started by ' + d.started_by : ''; }
+  function showSyncProgress(d) {
+    if (!syncButton) return;
+    if (d.running) {
+      syncButton.disabled = true;
+      syncButton.textContent = 'Syncing… ' + countText(d);
+    } else {
+      syncButton.disabled = false;
+      syncButton.innerHTML = syncLabel;
+    }
+  }
+  function followSync() {
+    if (following) return;
+    following = setInterval(function () {
+      P.api('/api/square/sync-all/progress/').then(function (d) {
+        showSyncProgress(d);
+        if (d.running) return;
+        clearInterval(following);
+        following = null;
+        if (!d.total) return;
+        var msg = 'Square sync finished: ' + d.updated + ' updated, ' + d.skipped + ' unchanged';
+        if (d.error) {
+          // The full error is on the System page; keep the message readable.
+          var first = d.errors[0].message.length > 120 ? d.errors[0].message.slice(0, 120) + '…' : d.errors[0].message;
+          msg += ', ' + d.error + ' failed (first: ' + d.errors[0].sku + ' — ' + first + ')';
+        }
+        P.toast(msg, d.error ? 'err' : 'ok');
+        refreshSquare();
+      }).catch(function () {});
+    }, 2000);
+  }
+  if (syncButton) {
+    // A sync started earlier (or by someone else) is shown as soon as the page opens.
+    P.api('/api/square/sync-all/progress/').then(function (d) {
+      if (d.running) { showSyncProgress(d); followSync(); }
+    }).catch(function () {});
+  }
 
   function setText(selector, text) {
     var el = document.querySelector(selector);

@@ -1,7 +1,6 @@
 """Square endpoints: status for the dashboard, manual actions, and the webhook receiver."""
 import json
 import logging
-import threading
 
 from django.db import close_old_connections
 from django.http import JsonResponse
@@ -12,6 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 from core.http import json_error, json_ok
 from core.network import private_network_only
 from inventory.models import Item
+from squaresync import full_sync
 from squaresync import queue as square_queue
 from squaresync import reconciliation
 from squaresync import sync as square_sync
@@ -21,7 +21,6 @@ from squaresync.config import get_config
 from squaresync.models import CatalogSync, Sale, SyncAuditLog, SyncJob, WebhookEvent
 
 logger = logging.getLogger("pinksheet.square")
-_sync_all_lock = threading.Lock()
 
 
 @require_GET
@@ -59,24 +58,21 @@ def status(request):
 @require_POST
 @private_network_only
 def sync_all(request):
-    """Push every SKU to Square now (the dashboard's "Sync Square now" button)."""
+    """Start pushing every SKU to Square (the dashboard's "Sync Square now" button).
+
+    It runs in the background; the page follows it with sync_all_progress. Clicking
+    again while it runs returns the running sync's progress instead of a second sync.
+    """
     config = get_config()
     if not config.enabled:
         return json_error("Square isn't set up yet. Add SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID to .env.")
-    if not _sync_all_lock.acquire(blocking=False):
-        return json_error("A full Square sync is already running.", 409)
-    try:
-        summary = {"ok": 0, "skipped": 0, "error": 0}
-        errors = []
-        for sku in Item.objects.exclude(sku_normalized="").values_list("sku_normalized", flat=True):
-            result = square_sync.sync_item(sku, config=config)
-            key = "ok" if result.status == "ok" else ("skipped" if result.status in ("skipped", "disabled") else "error")
-            summary[key] += 1
-            if key == "error":
-                errors.append({"sku": sku, "message": result.message})
-    finally:
-        _sync_all_lock.release()
-    return json_ok(summary=summary, all_ok=not errors, errors=errors[:20])
+    started, state = full_sync.start(config, started_by=getattr(request, "actor", ""))
+    return json_ok(started=started, **state)
+
+
+@require_GET
+def sync_all_progress(request):
+    return json_ok(**full_sync.progress())
 
 
 @require_POST

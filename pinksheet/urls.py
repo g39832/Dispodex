@@ -59,6 +59,7 @@ urlpatterns = [
     path("api/ops/import-database/", ops_views.import_database, name="api_import_database"),
     path("api/square/status/", square_views.status, name="api_square_status"),
     path("api/square/sync-all/", square_views.sync_all, name="api_square_sync_all"),
+    path("api/square/sync-all/progress/", square_views.sync_all_progress, name="api_square_sync_progress"),
     path("api/square/queue-all/", square_views.queue_everything, name="api_square_queue_all"),
     path("api/square/test/", square_views.test_connection, name="api_square_test"),
     path("api/square/retry/", square_views.retry_dead_letters, name="api_square_retry"),
