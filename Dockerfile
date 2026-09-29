@@ -1,6 +1,6 @@
 # Dispodex in a container: the web server and background worker in one process
 # (`manage.py serve`). Everything that must survive a rebuild lives in /data
-# (database, photos, backups, logs); mount it from the host. See docs/docker.md.
+# (database, photos, backups, logs); mount it from the host.
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

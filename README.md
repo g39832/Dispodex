@@ -56,7 +56,6 @@ docker compose up -d --build
 ```
 
 Then open `http://<server address>:8765`. The database, photos and backups live in `./data`.
-Moving existing data in, updates and everyday commands: [docs/docker.md](docs/docker.md).
 
 ## Connecting Square (whenever you're ready)
 

@@ -1,6 +1,5 @@
 # Dispodex on a server:   docker compose up -d --build
 # Then open http://<server address>:8765 from any computer or phone on the network.
-# Full guide (moving existing data in, updates, backups): docs/docker.md
 services:
   dispodex:
     build: .
