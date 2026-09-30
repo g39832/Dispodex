@@ -4,7 +4,8 @@ from django.shortcuts import redirect
 
 # Paths that must keep working even when maintenance mode or login is on.
 _ALWAYS_OPEN_PREFIXES = ("/static/", "/webhooks/", "/square_webhook.php", "/api/health")
-_LOGIN_EXEMPT_PREFIXES = _ALWAYS_OPEN_PREFIXES + ("/login/", "/logout/", "/admin/")
+# The imaging app signs in with its own API key instead.
+_LOGIN_EXEMPT_PREFIXES = _ALWAYS_OPEN_PREFIXES + ("/login/", "/logout/", "/admin/", "/api/imaging/report/")
 
 
 class SecurityHeadersMiddleware:

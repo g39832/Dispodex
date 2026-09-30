@@ -6,6 +6,7 @@
 <form method="post" id="intake-form" novalidate autocomplete="off">
   {% csrf_token %}
   <input type="hidden" name="id" value="{{ item_id }}">
+  {% if device_id %}<input type="hidden" name="device" value="{{ device_id }}">{% endif %}
 
   <nav class="crumbs quick-hide"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>Intake sheet</span></nav>
 

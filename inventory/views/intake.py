@@ -13,6 +13,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from core.skus import normalize_sku
+from imaging import ingest as imaging_ingest
+from imaging.models import DeviceReport
 from inventory.forms import IntakeForm
 from inventory.models import (
     CompatibleOS,
@@ -78,6 +80,20 @@ def what_is_it_options(current: str) -> list[str]:
     return options
 
 
+def _device(device_id: str) -> DeviceReport | None:
+    return DeviceReport.objects.filter(pk=int(device_id)).first() if device_id.isdigit() else None
+
+
+def _link_device(device_id: str, item: Item) -> None:
+    """An item started from the Imaging page: link the computer so its serial and later reports land here."""
+    report = _device(device_id)
+    if report is not None and report.item_id is None:
+        try:
+            imaging_ingest.link(report, item)
+        except imaging_ingest.ReportError:
+            pass
+
+
 @require_http_methods(["GET", "POST"])
 def intake(request):
     lookup_sku = normalize_sku(request.GET.get("sku"))
@@ -94,6 +110,7 @@ def intake(request):
             except (ItemError, ValueError) as exc:
                 errors.append(str(exc))
             else:
+                _link_device(request.POST.get("device", ""), result.item)
                 square = get_config()
                 note = " Queued for Square." if square.enabled else ""
                 if result.created:
@@ -108,12 +125,19 @@ def intake(request):
                 errors.extend(field_errors)
         active_sku = normalize_sku(values.get("sku"))
         item_id_value = request.POST.get("id", "")
+        device_id = request.POST.get("device", "")
     else:
         if lookup_sku:
             _log_lookup(request, lookup_sku)
         values = item_values(item)
         if lookup_sku and item is None:
             values["sku"] = lookup_sku
+        device_id = ""
+        report = _device(request.GET.get("device", "")) if item is None else None
+        if report is not None:
+            # "Start intake" on the Imaging page: pre-fill the specs the imaging app found.
+            values.update(imaging_ingest.item_specs(report.payload))
+            device_id = str(report.pk)
         active_sku = normalize_sku(values.get("sku"))
         item_id_value = str(item.pk) if item else ""
 
@@ -123,6 +147,7 @@ def intake(request):
         "page": "intake" if item is None else "item",
         "item": item,
         "item_id": item_id_value,
+        "device_id": device_id if device_id.isdigit() else "",
         "values": values,
         "errors": errors,
         "active_sku": active_sku,

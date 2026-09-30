@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Imaging{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Imaging</h1>
+    <p class="page-desc">Computers reported by the imaging app, with the hardware it found and how far along imaging is. Link one to its SKU and its specs fill in that item's blank fields.</p>
+  </div>
+  {% if not demo %}
+  <form class="head-actions" method="post" action="{% url 'imaging_upload' %}" enctype="multipart/form-data" data-imaging-upload>
+    {% csrf_token %}
+    <label class="btn">{% icon "upload" %} Upload JSON
+      <input type="file" name="files" accept=".json,application/json" multiple hidden>
+    </label>
+  </form>
+  {% endif %}
+</div>
+
+{% if not api_ready %}
+  <div class="callout info imaging-setup">{% icon "info" %}<span>
+    The imaging app can't send reports yet. Set <code>PINKSHEET_IMAGING_API_KEY</code> in <code>.env</code> and restart Dispodex,
+    then have it send its JSON to <code>{{ api_url }}</code>. Until then you can upload .json files here. See <code>docs/imaging.md</code>.
+  </span></div>
+{% endif %}
+
+{% if total %}
+<form method="get" class="toolbar" role="search">
+  <div class="search">{% icon "search" %}<input class="input" type="search" name="q" value="{{ query }}" placeholder="Serial, model, SKU or stage" aria-label="Search imaging"></div>
+  <button class="btn" type="submit">Search</button>
+  {% if query %}<a class="btn btn-ghost" href="{% url 'imaging' %}">Clear</a>{% endif %}
+</form>
+{% endif %}
+
+<div data-imaging-list>{% include "imaging/_list.html" %}</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/imaging.js' %}"></script>{% endblock %}

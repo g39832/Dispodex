@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "squaresync",
     "operations",
     "teamdocs",
+    "imaging",
 ]
 
 MIDDLEWARE = [
@@ -176,6 +177,8 @@ PINKSHEET = {
     "DEMO_MODE": env_bool("PINKSHEET_DEMO_MODE", False),
     # The listing-images composer is unfinished: hidden (and its pages turned off) until it's ready.
     "LISTING_IMAGES": env_bool("PINKSHEET_LISTING_IMAGES", False),
+    # Shared secret the imaging app sends with its JSON reports (blank = reports turned off).
+    "IMAGING_API_KEY": env("PINKSHEET_IMAGING_API_KEY", ""),
     "MAINTENANCE_MESSAGE": env(
         "PINKSHEET_MAINTENANCE_MESSAGE",
         "Dispodex is temporarily offline for maintenance.",

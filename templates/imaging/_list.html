@@ -1,0 +1,85 @@
+{% load ui %}
+<div class="imaging-list" data-in-progress="{% for r in page_obj %}{% if r.progress is not None and r.progress < 100 %}1{% endif %}{% endfor %}">
+  {% for report in page_obj %}
+    <section class="imaging-card" id="device-{{ report.pk }}">
+      <div class="imaging-top">
+        <div class="imaging-name">
+          <div class="imaging-title">{{ report.title }}</div>
+          <div class="doc-meta"><span>{% icon "hash" %} {{ report.serial }}</span><span title="{{ report.last_seen|date:'M j, Y g:i A' }}">{% icon "clock" %} {{ report.last_seen|ago }}</span></div>
+        </div>
+        {% if report.status %}<span class="tag {% if report.progress == 100 %}green{% else %}blue{% endif %}">{{ report.status }}</span>{% endif %}
+      </div>
+
+      {% if report.progress is not None or report.stage or report.message %}
+      <div class="imaging-progress">
+        {% if report.progress is not None %}
+          <div class="imaging-bar" role="progressbar" aria-valuenow="{{ report.progress }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ report.progress }}%"></span></div>
+        {% endif %}
+        <div class="imaging-stage">
+          {% if report.progress is not None %}<strong>{{ report.progress }}%</strong>{% endif %}
+          {{ report.stage }}{% if report.stage and report.message %} · {% endif %}<span class="muted">{{ report.message }}</span>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if report.specs %}
+      <dl class="imaging-specs">
+        {% if report.specs.cpu %}<div><dt>CPU</dt><dd>{{ report.specs.cpu }}</dd></div>{% endif %}
+        {% if report.specs.ram %}<div><dt>RAM</dt><dd>{{ report.specs.ram }}</dd></div>{% endif %}
+        {% if report.specs.ssd_gb %}<div><dt>Storage</dt><dd>{{ report.specs.ssd_gb }}{% if report.payload.disk_bus %} {{ report.payload.disk_bus }}{% endif %}</dd></div>{% endif %}
+        {% if report.specs.os %}<div><dt>OS</dt><dd>{{ report.specs.os }}</dd></div>{% endif %}
+        {% if report.specs.battery_health %}<div><dt>Battery</dt><dd>{{ report.specs.battery_health }}</dd></div>{% endif %}
+      </dl>
+      {% endif %}
+
+      <div class="imaging-item">
+        {% if report.item %}
+          <span>{% icon "link" %} Linked to <a href="{% url 'intake' %}?sku={{ report.item.sku_normalized|urlencode }}"><strong>{{ report.item.sku }}</strong></a> <span class="muted">{{ report.item.what_is_it }}</span></span>
+          {% if not demo %}
+          <form method="post" action="{% url 'imaging_unlink' report.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Unlink</button></form>
+          {% endif %}
+        {% elif not demo %}
+          <form method="post" action="{% url 'imaging_link' report.pk %}" class="imaging-link-form">
+            {% csrf_token %}
+            <input class="input" name="sku" placeholder="SKU" aria-label="SKU to link {{ report.serial }} to" autocomplete="off" spellcheck="false">
+            <button class="btn" type="submit">{% icon "link" %} Link</button>
+          </form>
+          <a class="btn btn-primary" href="{% url 'intake' %}?new=1&device={{ report.pk }}">{% icon "plus" %} Start intake</a>
+        {% endif %}
+      </div>
+
+      <details class="imaging-details">
+        <summary>All details{% if report.log %} and history{% endif %}</summary>
+        <dl class="kv">
+          {% for key, value in report.details %}<dt>{{ key }}</dt><dd>{% if value is True %}Yes{% elif value is False %}No{% else %}{{ value }}{% endif %}</dd>{% endfor %}
+          <dt>First seen</dt><dd>{{ report.first_seen|date:"M j, Y g:i A" }}</dd>
+          <dt>Sent by</dt><dd>{{ report.reported_by|default:"—" }}</dd>
+        </dl>
+        {% if report.log %}
+        <ol class="imaging-log">
+          {% for entry in report.log %}
+            <li><span class="faint">{{ entry.at|slice:"11:16" }}</span> {% if entry.progress is not None %}{{ entry.progress }}% · {% endif %}{{ entry.status }}{% if entry.stage %} · {{ entry.stage }}{% endif %}{% if entry.message %} <span class="muted">· {{ entry.message }}</span>{% endif %}</li>
+          {% endfor %}
+        </ol>
+        {% endif %}
+        {% if not demo %}
+        <form method="post" action="{% url 'imaging_remove' report.pk %}" data-imaging-remove data-serial="{{ report.serial }}">
+          {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">{% icon "trash" %} Remove from Imaging</button>
+        </form>
+        {% endif %}
+      </details>
+    </section>
+  {% empty %}
+    <div class="doc-empty">
+      {% if query %}No computers match “{{ query }}”.{% else %}{% icon "cpu" %}<p>No computers yet. They show up here as soon as the imaging app sends its first report.</p>{% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pages">
+  {% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}">← Newer</a>{% endif %}
+  <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}">Older →</a>{% endif %}
+</nav>
+{% endif %}

@@ -8,6 +8,7 @@ from archive import views as archive_views
 from inventory.views import api, dashboard, exports, intake, lookup, pages, photos
 from operations import views as ops_views
 from squaresync import views as square_views
+from imaging import views as imaging_views
 from teamdocs import views as doc_views
 
 urlpatterns = [
@@ -20,6 +21,11 @@ urlpatterns = [
     path("scripts/", pages.script_builder, name="scripts"),
     path("listing-images/", pages.listing_images, name="listing_images"),
     path("system/", ops_views.system, name="system"),
+    path("imaging/", imaging_views.imaging, name="imaging"),
+    path("imaging/upload/", imaging_views.upload, name="imaging_upload"),
+    path("imaging/<int:report_id>/link/", imaging_views.link, name="imaging_link"),
+    path("imaging/<int:report_id>/unlink/", imaging_views.unlink, name="imaging_unlink"),
+    path("imaging/<int:report_id>/remove/", imaging_views.remove, name="imaging_remove"),
     path("docs/", doc_views.doc_list, name="docs"),
     path("docs/new/", doc_views.doc_new, name="doc_new"),
     path("docs/<int:post_id>/", doc_views.doc_detail, name="doc_detail"),
@@ -72,8 +78,9 @@ urlpatterns = [
     path("api/square/retry/", square_views.retry_dead_letters, name="api_square_retry"),
     path("api/reconciliation/", square_views.reconciliation_status, name="api_recon_status"),
     path("api/reconciliation/run/", square_views.reconciliation_run, name="api_recon_run"),
-    # ── Square webhook (public) + label printer bridge ─────────────────────
+    # ── Square webhook and imaging app reports (API key) + label printer bridge
     path("webhooks/square/", square_views.webhook, name="square_webhook"),
+    path("api/imaging/report/", imaging_views.report_api, name="api_imaging_report"),
     path("webhooks/square.php", square_views.webhook),
     path("square_webhook.php", square_views.webhook),
     path("qz/certificate/", ops_views.qz_certificate, name="qz_certificate"),
