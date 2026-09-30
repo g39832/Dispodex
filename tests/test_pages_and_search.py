@@ -219,6 +219,24 @@ def test_login_wall_when_enabled(client, settings):
     assert client.get("/api/health/").status_code == 200
 
 
+def test_manage_users_button_only_for_staff(client, django_user_model):
+    assert "Manage users" not in client.get("/").content.decode()
+    client.force_login(django_user_model.objects.create_user("sam", password="x"))
+    assert "Manage users" not in client.get("/").content.decode()
+    client.force_login(django_user_model.objects.create_user("lead", password="x", is_staff=True))
+    assert 'href="/admin/auth/user/"' in client.get("/").content.decode()
+    client.force_login(django_user_model.objects.create_superuser("boss", password="x"))
+    assert 'href="/admin/auth/user/"' in client.get("/").content.decode()
+
+
+def test_sign_out_returns_to_the_app_sign_in(client, settings, django_user_model):
+    settings.PINKSHEET = {**settings.PINKSHEET, "REQUIRE_LOGIN": True}
+    django_user_model.objects.create_user("sam", password="pw12345678")
+    assert client.login(username="sam", password="pw12345678")
+    assert client.post("/logout/")["Location"] == "/login/"
+    assert client.post("/login/", {"username": "sam", "password": "pw12345678"})["Location"] == "/"
+
+
 def test_maintenance_mode(client, settings):
     settings.PINKSHEET = {**settings.PINKSHEET, "MAINTENANCE_MODE": True}
     assert client.get("/").status_code == 503

@@ -40,6 +40,9 @@
       <ul class="nav">
         <li><a href="{% url 'system' %}" class="{% if page == 'system' %}is-active{% endif %}">{% icon "settings" %} System
           <span class="status-dot {% if square_enabled %}on{% else %}off{% endif %}" style="margin-left:auto" title="Square {% if square_enabled %}connected{% else %}not set up{% endif %}"></span></a></li>
+        {% if user.is_staff %}
+        <li><a href="{% url 'admin:auth_user_changelist' %}" title="Add people, reset passwords and turn accounts off">{% icon "users" %} Manage users</a></li>
+        {% endif %}
       </ul>
       {% if not user.is_authenticated %}
       <button type="button" class="nav-button" data-set-name title="Name shown in item history for changes from this device">{% icon "user" %} <span class="nav-ellipsis" data-actor-label>{% if request.actor_named %}{{ request.actor }}{% else %}Set your name{% endif %}</span></button>
