@@ -7,6 +7,7 @@
 | `data/pinksheet.sqlite3` | The database (never copy it while running; use a backup instead) |
 | `data/media/sku_photos/<SKU>/` | Photos (same layout as the old app) |
 | `data/media/ebay_images/` | Listing-image composer uploads |
+| `data/media/doc_photos/<post id>/` | Photos on Team docs posts |
 | `data/backups/` | Nightly backups, each with a `.sha256` checksum |
 | `data/logs/` | `app.log`, `square_sync.log`, `lookup.log` (rotated automatically) |
 | `data/secret_key.txt` | Created on first run; keeps sign-ins valid across restarts |

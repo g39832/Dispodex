@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'docs' %}">Team docs</a> <span>/</span></div>
+<article class="doc-post">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">{{ post.title }}</h1>
+      <div class="doc-meta doc-byline">
+        <span>{% icon "user" %} <strong>{{ post.author }}</strong></span>
+        <span title="{{ post.created_at|date:'M j, Y g:i A' }}">Posted {{ post.created_at|date:"M j, Y \a\t g:i A" }}</span>
+        {% if post.updated_at %}<span title="{{ post.updated_at|date:'M j, Y g:i A' }}">Edited by {{ post.updated_by }} {{ post.updated_at|ago }}</span>{% endif %}
+      </div>
+    </div>
+    {% if can_edit and not demo_mode %}
+    <div class="head-actions">
+      <a class="btn" href="{% url 'doc_edit' post.pk %}">{% icon "text" %} Edit</a>
+      <form method="post" action="{% url 'doc_delete' post.pk %}" data-doc-delete data-title="{{ post.title }}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">{% icon "trash" %} Delete</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if post.body %}
+    <div class="doc-body">{{ post.body|urlize|linebreaks }}</div>
+  {% endif %}
+
+  {% if photos %}
+    <div class="doc-photos">
+      {% for photo in photos %}
+        <button type="button" class="doc-photo" data-lightbox="{% url 'doc_photo' photo.pk %}" title="{{ photo.original_name }}">
+          <img src="{% url 'doc_photo' photo.pk %}" alt="{{ photo.original_name }}" loading="lazy">
+        </button>
+      {% endfor %}
+    </div>
+  {% endif %}
+</article>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/docs.js' %}"></script>{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Team docs{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Team docs</h1>
+    <p class="page-desc">Updates, how-tos and anything else the team should know. Everyone can read and post, and every post shows who wrote it.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-primary" href="{% url 'doc_new' %}">{% icon "plus" %} New post</a>
+  </div>
+</div>
+
+{% if total %}
+<form method="get" class="toolbar" role="search">
+  <div class="search">{% icon "search" %}<input class="input" type="search" name="q" value="{{ query }}" placeholder="Search titles, text or who posted" aria-label="Search team docs"></div>
+  <button class="btn" type="submit">Search</button>
+  {% if query %}<a class="btn btn-ghost" href="{% url 'docs' %}">Clear</a>{% endif %}
+</form>
+{% endif %}
+
+<div class="doc-list">
+  {% for post in page_obj %}
+    <a class="doc-row" href="{% url 'doc_detail' post.pk %}">
+      <div class="doc-row-text">
+        <div class="doc-row-title">{{ post.title }}</div>
+        {% if post.body %}<div class="doc-row-snippet">{{ post.body|truncatechars:180 }}</div>{% endif %}
+        <div class="doc-meta">
+          <span>{% icon "user" %} {{ post.author }}</span>
+          <span title="{{ post.created_at|date:'M j, Y g:i A' }}">{{ post.created_at|date:"M j, Y" }}</span>
+          {% if post.photo_count %}<span>{% icon "image" %} {{ post.photo_count }} photo{{ post.photo_count|pluralize }}</span>{% endif %}
+          {% if post.updated_at %}<span class="faint">Edited</span>{% endif %}
+        </div>
+      </div>
+      {% if post.cover_id %}<img class="doc-row-cover" src="{% url 'doc_photo' post.cover_id %}" alt="" loading="lazy">{% endif %}
+    </a>
+  {% empty %}
+    <div class="doc-empty">
+      {% if query %}
+        No posts match “{{ query }}”.
+      {% else %}
+        {% icon "book" %}
+        <p>No posts yet. Share the first update with the team.</p>
+        <a class="btn btn-primary" href="{% url 'doc_new' %}">{% icon "plus" %} New post</a>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pages">
+  {% if page_obj.has_previous %}<a href="?q={{ query|urlencode }}&page={{ page_obj.previous_page_number }}">← Newer</a>{% endif %}
+  <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?q={{ query|urlencode }}&page={{ page_obj.next_page_number }}">Older →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

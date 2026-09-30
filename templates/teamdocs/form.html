@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}{% if post %}Edit post{% else %}New post{% endif %}{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'docs' %}">Team docs</a> <span>/</span>{% if post %} <a href="{% url 'doc_detail' post.pk %}">{{ post.title|truncatechars:40 }}</a> <span>/</span>{% endif %}</div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{% if post %}Edit post{% else %}New post{% endif %}</h1>
+    <p class="page-desc">{% if post %}Your name is added as the last person to edit it.{% else %}Give it a title, write the details, then add any photos to show underneath.{% endif %}</p>
+  </div>
+</div>
+
+<div class="doc-form">
+  {% if demo %}
+    <div class="callout info">{% icon "info" %}<span>Posting is turned off in the demo.</span></div>
+  {% else %}
+    {% if error %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="stack" style="gap:16px" data-doc-form>
+      {% csrf_token %}
+      {% if ask_name %}
+      <div class="field">
+        <label class="field-label" for="doc-name">Your name <span class="faint">· required</span></label>
+        <input class="input" id="doc-name" name="name" maxlength="40" required autocomplete="name" value="{{ form.name }}" placeholder="Shown on the post">
+      </div>
+      {% else %}
+      <p class="muted" style="font-size:13px">{% icon "user" %} {% if post %}Editing{% else %}Posting{% endif %} as <strong>{{ request.actor }}</strong></p>
+      {% endif %}
+      <div class="field">
+        <label class="field-label" for="doc-title">Title <span class="faint">· required</span></label>
+        <input class="input doc-title-input" id="doc-title" name="title" maxlength="200" required value="{{ form.title }}"
+               placeholder="e.g. New shipping cutoff time" {% if not post %}autofocus{% endif %}>
+      </div>
+      <div class="field">
+        <label class="field-label" for="doc-body">Details</label>
+        <textarea class="input" id="doc-body" name="body" rows="12" maxlength="50000"
+                  placeholder="Write the update here. Blank lines start a new paragraph and links become clickable.">{{ form.body }}</textarea>
+      </div>
+
+      {% if photos %}
+      <div class="field">
+        <span class="field-label">Photos on this post</span>
+        <div class="doc-photos doc-photos-edit">
+          {% for photo in photos %}
+            <label class="doc-photo-edit">
+              <img src="{% url 'doc_photo' photo.pk %}" alt="{{ photo.original_name }}" loading="lazy">
+              <span class="check"><input type="checkbox" name="remove_photo" value="{{ photo.pk }}"> Remove</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="field">
+        <label class="field-label" for="doc-photos">{% if photos %}Add more photos{% else %}Photos{% endif %}</label>
+        <input class="input" id="doc-photos" name="photos" type="file" accept="image/*" multiple data-doc-photos>
+        <span class="hint">JPG, PNG, WebP or GIF, up to {{ max_photos }} per post. They show underneath the details, in the order you pick them.</span>
+        <div class="doc-photos doc-photos-preview" data-doc-preview hidden></div>
+      </div>
+
+      <div class="head-actions">
+        <button type="submit" class="btn btn-primary">{% icon "check" %} {% if post %}Save changes{% else %}Post{% endif %}</button>
+        <a class="btn btn-ghost" href="{% if post %}{% url 'doc_detail' post.pk %}{% else %}{% url 'docs' %}{% endif %}">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/docs.js' %}"></script>{% endblock %}

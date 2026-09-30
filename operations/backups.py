@@ -76,7 +76,7 @@ def mirror_photos(target: Path) -> int:
     """Copy new or changed photo files to the mirror folder. Returns files copied."""
     source_root = Path(settings.MEDIA_ROOT)
     copied = 0
-    for folder in ("sku_photos", "ebay_images"):
+    for folder in ("sku_photos", "ebay_images", "doc_photos"):
         root = source_root / folder
         if not root.exists():
             continue

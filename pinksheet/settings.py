@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "archive",
     "squaresync",
     "operations",
+    "teamdocs",
 ]
 
 MIDDLEWARE = [

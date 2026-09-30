@@ -8,6 +8,7 @@ from archive import views as archive_views
 from inventory.views import api, dashboard, exports, intake, lookup, pages, photos
 from operations import views as ops_views
 from squaresync import views as square_views
+from teamdocs import views as doc_views
 
 urlpatterns = [
     # ── Pages ──────────────────────────────────────────────────────────────
@@ -19,11 +20,17 @@ urlpatterns = [
     path("scripts/", pages.script_builder, name="scripts"),
     path("listing-images/", pages.listing_images, name="listing_images"),
     path("system/", ops_views.system, name="system"),
+    path("docs/", doc_views.doc_list, name="docs"),
+    path("docs/new/", doc_views.doc_new, name="doc_new"),
+    path("docs/<int:post_id>/", doc_views.doc_detail, name="doc_detail"),
+    path("docs/<int:post_id>/edit/", doc_views.doc_edit, name="doc_edit"),
+    path("docs/<int:post_id>/delete/", doc_views.doc_delete, name="doc_delete"),
     path("card/<str:sku>/", pages.card_redirect, name="card"),
     path("m/<str:sku>/", pages.mobile_card, name="mobile_card"),
     path("print/<str:sku>/", pages.print_card, name="print_card"),
     # ── Files ──────────────────────────────────────────────────────────────
     path("photos/<int:photo_id>/", photos.serve_photo, name="photo"),
+    path("docs/photos/<int:photo_id>/", doc_views.doc_photo, name="doc_photo"),
     path("listing-images/files/<str:sku>/<str:filename>", photos.serve_listing_image, name="listing_image_file"),
     path("exports/inventory.csv", exports.inventory_csv, name="export_csv"),
     path("exports/inventory.zip", exports.inventory_zip, name="export_zip"),

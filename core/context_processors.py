@@ -10,6 +10,7 @@ NAV = [
     ("archive", "Archive", "archive"),
     ("scripts", "Script builder", "script"),
     ("listing_images", "Listing images", "image"),
+    ("docs", "Team docs", "book"),
 ]
 
 
