@@ -113,6 +113,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
+# Back to Dispodex's own sign-in page, not the admin's (which only lets in admins).
+LOGOUT_REDIRECT_URL = "/login/"
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = env("PINKSHEET_TIME_ZONE", "America/Chicago")
