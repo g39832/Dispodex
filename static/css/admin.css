@@ -1,0 +1,176 @@
+/* ==========================================================================
+   The Django admin ("Manage users") in Dispodex's look: the admin's own colour
+   variables point at the app's tokens (tokens.css), so light and dark mode
+   follow the app automatically. A few rules below soften the admin's layout.
+   ========================================================================== */
+
+/* html[data-theme] outranks Django's own `html[data-theme="light"], :root` rule. */
+html[data-theme] {
+  --primary: var(--blue);
+  --secondary: var(--blue-strong);
+  --accent: var(--green);
+  --primary-fg: #ffffff;
+
+  --body-fg: var(--text);
+  --body-bg: var(--bg);
+  --body-quiet-color: var(--text-muted);
+  --body-medium-color: var(--text);
+  --body-loud-color: var(--text);
+
+  --header-color: var(--text-muted);
+  --header-branding-color: var(--text);
+  --header-bg: var(--bg-sidebar);
+  --header-link-color: var(--text);
+
+  --breadcrumbs-fg: var(--text-muted);
+  --breadcrumbs-link-fg: var(--blue);
+  --breadcrumbs-bg: var(--bg);
+
+  --link-fg: var(--blue);
+  --link-hover-color: var(--blue-strong);
+  --link-selected-fg: var(--blue-strong);
+
+  --hairline-color: var(--border);
+  --border-color: var(--border-strong);
+
+  --error-fg: var(--red);
+  --message-success-bg: var(--green-soft);
+  --message-warning-bg: var(--amber-soft);
+  --message-error-bg: var(--red-soft);
+
+  --darkened-bg: var(--bg-subtle);
+  --selected-bg: var(--bg-active);
+  --selected-row: var(--blue-soft);
+
+  --button-fg: #ffffff;
+  --button-bg: var(--blue);
+  --button-hover-bg: var(--blue-strong);
+  --default-button-bg: var(--green);
+  --default-button-hover-bg: var(--green-strong);
+  --close-button-bg: var(--text-faint);
+  --close-button-hover-bg: var(--text-muted);
+  --delete-button-bg: var(--red);
+  --delete-button-hover-bg: var(--red);
+
+  --object-tools-fg: var(--button-fg);
+  --object-tools-bg: var(--blue);
+  --object-tools-hover-bg: var(--blue-strong);
+
+  --font-family-primary: var(--font);
+  --font-family-monospace: var(--font-mono);
+}
+
+/* Light-coloured buttons in dark mode need dark text, as in the app. */
+html[data-theme="dark"] {
+  --primary-fg: #0f1a24;
+  --button-fg: #0f1a24;
+}
+
+body { font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+#header {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#site-name { margin: 0; font-size: 15px; font-weight: 650; }
+#site-name a { display: inline-flex; align-items: center; gap: 8px; color: var(--text) !important; text-decoration: none !important; }
+#site-name .brand-mark { width: 22px; height: 22px; }
+#site-name .site-name-sub { color: var(--text-muted); font-weight: 500; }
+#user-tools { font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text-muted); }
+#user-tools strong { color: var(--text); }
+#user-tools a, #logout-form button { border-bottom: 0; color: var(--text) !important; text-transform: none; letter-spacing: 0; font-size: 13px; }
+#user-tools a:hover, #logout-form button:hover { color: var(--blue) !important; text-decoration: none; }
+.dx-theme-toggle {
+  margin-left: 8px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dx-theme-toggle:hover { background: var(--bg-hover); }
+
+/* ── Breadcrumbs ──────────────────────────────────────────────────────── */
+div.breadcrumbs {
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+div.breadcrumbs a { color: var(--blue); }
+
+/* ── Content ──────────────────────────────────────────────────────────── */
+#content { padding: 24px; }
+#content h1 { font-weight: 650; letter-spacing: -0.01em; color: var(--text); }
+.module { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); }
+.module h2, .module caption, .inline-group h2 {
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 9px 12px;
+}
+.module caption a, .module h2 a { color: var(--text); }
+#content-related .module { border: 0; }
+thead th, tfoot td { background: var(--bg-subtle); color: var(--text-muted); }
+th, td { border-bottom-color: var(--border); }
+fieldset.module { border-radius: var(--radius-lg); }
+
+/* Form fields in the app's style */
+input[type=text], input[type=password], input[type=email], input[type=url], input[type=number],
+input[type=tel], input[type=search], textarea, select, .vTextField {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 8px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--blue); outline: 2px solid var(--blue-soft); outline-offset: 0; }
+
+/* Buttons: rounded like the app's */
+.button, input[type=submit], input[type=button], .submit-row input, a.button, .object-tools a {
+  border-radius: var(--radius);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+.submit-row { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.submit-row a.deletelink { border-radius: var(--radius); }
+.submit-row input.default { text-transform: none; }
+.object-tools a:link, .object-tools a:visited { font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+/* Messages ("The user was added successfully") */
+ul.messagelist li { color: var(--text); border-radius: var(--radius); margin-bottom: 6px; }
+
+/* Changelist (the Users list) */
+#changelist-filter { border-radius: var(--radius-lg); border: 1px solid var(--border); }
+#changelist .actions { background: var(--bg-subtle); border-radius: var(--radius); }
+#toolbar { background: transparent; border: 0; }
+.paginator { border-top-color: var(--border); }
+
+/* Left-hand model list */
+#nav-sidebar { border-right-color: var(--border); background: var(--bg-sidebar); }
+#nav-sidebar .current-model { background: var(--bg-active); }
+.toggle-nav-sidebar { background: var(--bg-sidebar); border-color: var(--border); color: var(--text-muted); }
+
+/* Sign-in page */
+.login #container { border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; }
+.login #header { padding: 14px 20px; }
+.login .submit-row { background: none; border: 0; padding: 4px 0 0; margin: 0; }
+.login .submit-row input { width: 100%; height: 36px; }
+
+@media (max-width: 767px) {
+  #header, div.breadcrumbs { padding-left: 16px; padding-right: 16px; }
+  #content { padding: 16px; }
+  /* Keep fields inside the bordered cards on narrow screens. */
+  fieldset.module .form-row { padding-left: 12px; padding-right: 12px; }
+  /* Django fixes these at 100vw - 30px; its responsive.css loads after this file. */
+  #content .aligned .form-row > div { width: auto; max-width: 100%; }
+  #content .aligned .form-row input { max-width: 100%; }
+}

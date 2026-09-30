@@ -1,87 +1,11 @@
 /* ==========================================================================
    Dispodex — design system
    Calm, document-like layout (in the spirit of Notion) using the business's
-   soft blues and greens. Every colour is a token below; dark mode only
+   soft blues and greens. Every colour is a token (in tokens.css); dark mode only
    swaps the tokens.
    ========================================================================== */
 
-:root {
-  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-
-  --bg: #ffffff;
-  --bg-sidebar: #f6f8f7;
-  --bg-subtle: #f7f8f8;
-  --bg-hover: rgba(40, 60, 70, 0.055);
-  --bg-active: rgba(40, 60, 70, 0.09);
-  --text: #2c3437;
-  --text-muted: #6b7479;
-  --text-faint: #9aa2a6;
-  --border: #e6e9e8;
-  --border-strong: #d5dbd9;
-  --shadow-pop: 0 1px 2px rgba(15, 30, 35, 0.06), 0 8px 24px rgba(15, 30, 35, 0.10);
-
-  --blue: #2f6cb3;
-  --blue-strong: #255a98;
-  --blue-soft: #e8f0f9;
-  --blue-soft-text: #2a5d96;
-  --green: #3d8b62;
-  --green-strong: #2f7350;
-  --green-soft: #e6f3ec;
-  --green-soft-text: #2e6b4c;
-  --red: #c4483c;
-  --red-soft: #fbeceb;
-  --amber-soft: #fbf3dd;
-  --amber-text: #8a6519;
-
-  /* Status tags (Notion-style soft pills) */
-  --tag-intake-bg: #eceeee;       --tag-intake-fg: #57605f;
-  --tag-draft-bg: #fbf3dd;        --tag-draft-fg: #85641c;
-  --tag-review-bg: #fbeee2;       --tag-review-fg: #97582a;
-  --tag-listed-bg: #e8f0f9;       --tag-listed-fg: #2a5d96;
-  --tag-store-bg: #e6f3ec;        --tag-store-fg: #2e6b4c;
-  --tag-sold-bg: #eeebf6;         --tag-sold-fg: #5b4b8a;
-
-  --radius: 6px;
-  --radius-lg: 10px;
-  --sidebar-w: 236px;
-  color-scheme: light;
-}
-
-:root[data-theme="dark"] {
-  --bg: #191b1c;
-  --bg-sidebar: #1f2223;
-  --bg-subtle: #222627;
-  --bg-hover: rgba(255, 255, 255, 0.055);
-  --bg-active: rgba(255, 255, 255, 0.09);
-  --text: #e3e6e6;
-  --text-muted: #a0a8ab;
-  --text-faint: #6f7779;
-  --border: #2e3334;
-  --border-strong: #3a4042;
-  --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.45);
-
-  --blue: #6ea2dd;
-  --blue-strong: #8ab5e6;
-  --blue-soft: rgba(110, 162, 221, 0.16);
-  --blue-soft-text: #9cc1ea;
-  --green: #6cbb8f;
-  --green-strong: #86c9a3;
-  --green-soft: rgba(108, 187, 143, 0.15);
-  --green-soft-text: #97d0af;
-  --red: #e57a6f;
-  --red-soft: rgba(229, 122, 111, 0.14);
-  --amber-soft: rgba(220, 175, 80, 0.14);
-  --amber-text: #dcbc6e;
-
-  --tag-intake-bg: rgba(255, 255, 255, 0.08);  --tag-intake-fg: #c4caca;
-  --tag-draft-bg: rgba(220, 175, 80, 0.15);    --tag-draft-fg: #dcbc6e;
-  --tag-review-bg: rgba(226, 146, 88, 0.15);   --tag-review-fg: #e3a878;
-  --tag-listed-bg: rgba(110, 162, 221, 0.16);  --tag-listed-fg: #9cc1ea;
-  --tag-store-bg: rgba(108, 187, 143, 0.15);   --tag-store-fg: #97d0af;
-  --tag-sold-bg: rgba(150, 130, 210, 0.17);    --tag-sold-fg: #bcaeea;
-  color-scheme: dark;
-}
+/* The tokens (colours, fonts, sizes) live in tokens.css, loaded just before this file. */
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }

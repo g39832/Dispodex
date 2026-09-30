@@ -118,3 +118,18 @@ def test_staff_do_not_get_the_rest_of_the_admin(client, lead):
     client.force_login(lead)
     assert client.get("/admin/inventory/item/").status_code == 403
     assert client.get("/admin/auth/group/").status_code == 403
+
+
+@pytest.mark.parametrize("url", ["/admin/login/", USERS])
+def test_admin_pages_use_the_dispodex_theme(client, lead, url):
+    if url != "/admin/login/":
+        client.force_login(lead)
+    html = client.get(url).content.decode()
+    assert "css/tokens.css" in html and "css/admin.css" in html and "js/theme-init.js" in html
+    assert "admin/css/dark_mode.css" not in html  # the app's dark mode, not Django's own
+    assert "Dispodex admin" in html and "img/logo.svg" in html and "data-theme-toggle" in html
+
+
+def test_app_pages_still_load_the_theme_tokens(client):
+    html = client.get("/").content.decode()
+    assert html.index("css/tokens.css") < html.index("css/app.css")

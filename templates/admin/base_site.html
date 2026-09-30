@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+{# The admin in Dispodex's colours, sharing the app's own light/dark setting. #}
+
+{% block title %}{% if subtitle %}{{ subtitle }} · {% endif %}{{ title }} · Dispodex admin{% endblock %}
+
+{% block dark-mode-vars %}
+  <script src="{% static 'js/theme-init.js' %}"></script>
+{% endblock %}
+
+{% block extrastyle %}
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+  <script src="{% static 'js/admin-theme.js' %}" defer></script>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+  <a href="{% url 'admin:index' %}">
+    <img class="brand-mark" src="{% static 'img/logo.svg' %}" alt="" width="22" height="22">
+    <span>Dispodex</span> <span class="site-name-sub">admin</span>
+  </a>
+</div>
+{% if user.is_anonymous %}
+  <button type="button" class="dx-theme-toggle" data-theme-toggle><span data-theme-label>Dark mode</span></button>
+{% endif %}
+{% endblock %}
+
+{% block userlinks %}
+  {% if site_url %}<a href="{{ site_url }}">&larr; Back to Dispodex</a> /{% endif %}
+  {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /{% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+    {% csrf_token %}
+    <button type="submit">Sign out</button>
+  </form>
+  <button type="button" class="dx-theme-toggle" data-theme-toggle><span data-theme-label>Dark mode</span></button>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
