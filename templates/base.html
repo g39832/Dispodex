@@ -44,6 +44,7 @@
         {% if user.is_staff %}
         <li><a href="{% url 'admin:auth_user_changelist' %}" title="Add people, reset passwords and turn accounts off">{% icon "users" %} Manage users</a></li>
         {% endif %}
+        <li><a href="{% url 'report_bug' %}{% if page != 'report_bug' %}?from={{ request.get_full_path|urlencode }}{% endif %}" class="{% if page == 'report_bug' %}is-active{% endif %}" title="Tell us about something that isn't working">{% icon "bug" %} Report a bug</a></li>
       </ul>
       {% if not user.is_authenticated %}
       <button type="button" class="nav-button" data-set-name title="Name shown in item history for changes from this device">{% icon "user" %} <span class="nav-ellipsis" data-actor-label>{% if request.actor_named %}{{ request.actor }}{% else %}Set your name{% endif %}</span></button>

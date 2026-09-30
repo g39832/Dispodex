@@ -73,6 +73,7 @@ urlpatterns = [
     path("qz/sign/", ops_views.qz_sign, name="qz_sign"),
     path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.svg", permanent=True)),
     # ── Accounts & admin ───────────────────────────────────────────────────
+    path("report-bug/", ops_views.report_bug, name="report_bug"),
     path("login/", ops_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("admin/", admin.site.urls),

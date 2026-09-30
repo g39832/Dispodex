@@ -7,9 +7,10 @@ from urllib.parse import urlencode
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -17,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST
 from core.http import json_error, json_ok, read_json_body
 from core.network import private_network_only
 from operations import backups, db_import, health
-from operations.models import SystemState
+from operations.models import BugReport, SystemState
 from squaresync.config import get_config
 from squaresync.models import ReconciliationRun, SyncAuditLog, SyncJob, WebhookEvent
 
@@ -148,6 +149,35 @@ def qz_sign(request):
     response = HttpResponse(base64.b64encode(signature).decode(), content_type="text/plain")
     response["Cache-Control"] = "no-store"
     return response
+
+
+# ── Report a bug (sidebar button) ────────────────────────────────────────────
+def report_bug(request):
+    demo = settings.PINKSHEET["DEMO_MODE"]
+    page = request.POST.get("page") or request.GET.get("from", "")
+    # Pre-fill the name when Dispodex already knows it (signed in, or "Set your name" on this device).
+    form = {"name": request.actor if request.actor_named else "", "summary": "", "details": ""}
+    error = ""
+    if request.method == "POST" and not demo:
+        form = {key: request.POST.get(key, "").strip() for key in ("name", "summary", "details")}
+        if not form["name"]:
+            error = "Add your name so we know who to ask about it."
+        elif not form["summary"]:
+            error = "Say what went wrong, even in a few words."
+        else:
+            BugReport.objects.create(
+                reporter=" ".join(form["name"].split())[:80],
+                sent_by=request.actor[:80],
+                summary=" ".join(form["summary"].split())[:200],
+                details=form["details"][:5000],
+                page=page[:500],
+                browser=request.META.get("HTTP_USER_AGENT", "")[:300],
+            )
+            messages.success(request, "Thanks! Your bug report was sent.")
+            return redirect("report_bug")
+    return render(request, "operations/report_bug.html", {
+        "page": "report_bug", "from_page": page, "form": form, "error": error, "demo": demo,
+    })
 
 
 # ── sign in / out (only used when PINKSHEET_REQUIRE_LOGIN=1) ─────────────────

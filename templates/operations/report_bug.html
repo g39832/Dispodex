@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Report a bug{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Report a bug</h1>
+    <p class="page-desc">Something not working right? Tell us what happened and it goes straight to whoever looks after Dispodex.</p>
+  </div>
+</div>
+
+<div class="bug-report">
+  {% if demo %}
+    <div class="callout info">{% icon "info" %}<span>Bug reports are turned off in the demo.</span></div>
+  {% else %}
+    {% if error %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endif %}
+    <form method="post" class="stack" style="gap:14px">
+      {% csrf_token %}
+      <input type="hidden" name="page" value="{{ from_page }}">
+      <div class="field">
+        <label class="field-label" for="bug-name">Your name <span class="faint">· required</span></label>
+        <input class="input" id="bug-name" name="name" maxlength="80" required autocomplete="name"
+               value="{{ form.name }}" placeholder="So we know who to ask about it" {% if not form.name %}autofocus{% endif %}>
+      </div>
+      <div class="field">
+        <label class="field-label" for="bug-summary">What went wrong? <span class="faint">· required</span></label>
+        <input class="input" id="bug-summary" name="summary" maxlength="200" required {% if form.name %}autofocus{% endif %}
+               value="{{ form.summary }}" placeholder="e.g. The Print label button does nothing">
+      </div>
+      <div class="field">
+        <label class="field-label" for="bug-details">What were you doing when it happened?</label>
+        <textarea class="input" id="bug-details" name="details" rows="6" maxlength="5000"
+                  placeholder="Which item, what you clicked, what you expected to happen…">{{ form.details }}</textarea>
+      </div>
+      <p class="muted" style="font-size:12.5px">
+        {% if from_page %}Sent from <code>{{ from_page }}</code>. {% endif %}Your browser type is included to help track it down.
+      </p>
+      <div><button type="submit" class="btn btn-primary">{% icon "bug" %} Send report</button></div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

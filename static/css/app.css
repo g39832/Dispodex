@@ -259,6 +259,9 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .kv dt { min-width: 0; }
 
+/* Report a bug */
+.bug-report { max-width: 640px; display: grid; gap: 14px; }
+
 /* Alerts / callouts */
 .callout {
   display: flex; gap: 10px; align-items: flex-start;
