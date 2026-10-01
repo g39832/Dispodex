@@ -161,13 +161,56 @@ def test_archive_search_and_export(client):
 
 
 # ── script builder & labels ──────────────────────────────────────────────────
-def test_prompt_and_final_script(stock):
-    item = Item.objects.get(sku="LAP-1")
-    prompt = scripts.build_prompt("LAP-1", item)
-    assert "Inventory record:\n- SKU: LAP-1" in prompt
-    assert "- Brand Model: Dell Latitude" in prompt
-    final = scripts.build_final_script("  Great laptop  ")
-    assert final.startswith("Please Read This First") and final.endswith("Great laptop")
+@pytest.fixture
+def shop_notes(settings, tmp_path):
+    notes = tmp_path / "ebay_boilerplate.txt"
+    notes.write_text("Please Read This First\nShips Mon-Fri\n", encoding="utf-8")
+    settings.PINKSHEET = {**settings.PINKSHEET, "EBAY_BOILERPLATE_FILE": notes}
+    return "Please Read This First\nShips Mon-Fri"
+
+
+def _listing_answer(notes):
+    """An answer to the prompt, with ChatGPT's (slightly reworded) copy of the shop notes."""
+    return f"""Sure! Here's your listing:
+
+**Recommended eBay Title:** Panasonic Lumix DMC-FS3 8.1MP Digital Camera
+
+{notes.replace("Ships Mon-Fri", "Ships Monday-Friday")}
+
+**Product Details**
+- Brand/Model: Panasonic Lumix DMC-FS3
+- Battery Health: Holds charge
+- Inventory Number: CB2-1
+
+**Suggested eBay Price:** $45-$60
+**Recommended Shipping:** USPS Ground Advantage, about $6"""
+
+
+def test_prompt_is_the_old_builders_full_listing_prompt(stock, shop_notes):
+    prompt = scripts.build_prompt("LAP-1", Item.objects.get(sku="LAP-1"))
+    assert prompt.startswith("Generate a concise eBay listing for this item.")
+    assert f"include this EXACT boilerplate text (copy it exactly as shown):\n\n{shop_notes}\n\n3. THEN" in prompt
+    assert "PROVIDED SPECS:\nBrand / Model: Dell Latitude" in prompt and "SKU: LAP-1" in prompt
+    assert "End the Product Details section with: Inventory Number: LAP-1" in prompt
+    assert "Suggested eBay price" in prompt and "No condition mentions" in prompt
+
+
+def test_listing_answer_becomes_title_description_and_staff_notes(client, shop_notes):
+    built = client.post(reverse("api_script_build"), {"chatgpt_text": _listing_answer(shop_notes)},
+                        content_type="application/json").json()
+    assert built["title"] == "Panasonic Lumix DMC-FS3 8.1MP Digital Camera" and built["title_length"] == 44
+    # The shop notes exactly as written (not ChatGPT's reworded copy), then the Product Details.
+    assert built["final_text"] == (
+        "Please Read This First\nShips Mon-Fri\n\nProduct Details\n- Brand/Model: Panasonic Lumix DMC-FS3\n"
+        "- Battery Health: Holds charge\n- Inventory Number: CB2-1"
+    )
+    assert built["staff_notes"] == "Suggested eBay Price: $45-$60\nRecommended Shipping: USPS Ground Advantage, about $6"
+
+
+def test_answers_without_the_shop_notes_get_them_added(shop_notes):
+    assert scripts.build_final_script("  Great laptop  ") == f"{shop_notes}\n\nGreat laptop"
+    parsed = scripts.parse_answer('Title: Dell Latitude 5590 15.6"\n\nPowers on.')
+    assert parsed.title == 'Dell Latitude 5590 15.6"' and parsed.description == f"{shop_notes}\n\nPowers on."
     assert scripts.build_final_script("") == "Paste the ChatGPT output first."
 
 
@@ -179,81 +222,16 @@ def test_script_cache_api(client, stock):
     cache = ScriptCache.objects.get()
     assert (cache.prompt_text, cache.chatgpt_text, cache.final_text, cache.state) == ("p", "c", "f", "ready")
     fresh = client.get(reverse("api_script", args=["LAP-1"]) + "?fresh=1").json()
-    assert fresh["prompt_text"].startswith("You are helping me prepare")
+    assert fresh["prompt_text"].startswith("Generate a concise eBay listing")
 
 
-OLD_STYLE_ANSWER = """Sure! Here's a listing based on your record.
-
-### 1. Recommended eBay Title (80 characters max)
-**Dell Latitude 5590 15.6" Laptop i5-8350U 8GB RAM 256GB SSD**
-
-### 2. Concise Description
-This **Dell Latitude 5590** powers on and boots to BIOS.
-
-* No storage drive included
-
-### 3. Key Item Specifics
-- **Brand:** Dell
-- Model: Latitude 5590
-
-### 4. Missing Facts Worth Researching
-- Battery cycle count
-
-Let me know if you want changes!"""
-
-NEW_STYLE_ANSWER = """TITLE:
-HP EliteDesk 800 G3 Mini PC i5-6500T 8GB
-
-DESCRIPTION:
-Small form factor desktop. Tested and boots to BIOS.
-
-ITEM SPECIFICS:
-Brand: HP
-Model: EliteDesk 800 G3 Mini
-
-NOTES FOR STAFF:
-Check the MPN."""
-
-
-def test_prompt_asks_for_the_headings_the_builder_reads(stock):
-    prompt = scripts.build_prompt("LAP-1", Item.objects.get(sku="LAP-1"))
-    for heading in ("TITLE:", "DESCRIPTION:", "ITEM SPECIFICS:", "NOTES FOR STAFF:"):
-        assert f"\n{heading}\n" in prompt
-
-
-@pytest.mark.parametrize("answer, title, description, specifics, notes", [
-    (OLD_STYLE_ANSWER, 'Dell Latitude 5590 15.6" Laptop i5-8350U 8GB RAM 256GB SSD',
-     "This Dell Latitude 5590 powers on and boots to BIOS.\n\n- No storage drive included",
-     ["Brand: Dell", "Model: Latitude 5590"], "- Battery cycle count\n\nLet me know if you want changes!"),
-    (NEW_STYLE_ANSWER, "HP EliteDesk 800 G3 Mini PC i5-6500T 8GB", "Small form factor desktop. Tested and boots to BIOS.",
-     ["Brand: HP", "Model: EliteDesk 800 G3 Mini"], "Check the MPN."),
-    ("Just a description\nwith two lines", "", "Just a description\nwith two lines", [], ""),
-])
-def test_chatgpt_answer_is_split_into_listing_parts(answer, title, description, specifics, notes):
-    parsed = scripts.parse_answer(answer)
-    assert (parsed.title, parsed.description, parsed.specifics, parsed.notes) == (title, description, specifics, notes)
-
-
-def test_final_description_is_shop_notes_description_and_specifics(settings, tmp_path, client):
-    notes = tmp_path / "ebay_boilerplate.txt"
-    notes.write_text("Our policies\n", encoding="utf-8")
-    settings.PINKSHEET = {**settings.PINKSHEET, "EBAY_BOILERPLATE_FILE": notes}
-    built = client.post(reverse("api_script_build"), {"chatgpt_text": NEW_STYLE_ANSWER}, content_type="application/json").json()
-    assert built["final_text"] == (
-        "Our policies\n\nSmall form factor desktop. Tested and boots to BIOS.\n\n"
-        "Item Specifics\n- Brand: HP\n- Model: EliteDesk 800 G3 Mini"
-    )
-    assert built["title"] == "HP EliteDesk 800 G3 Mini PC i5-6500T 8GB" and built["title_length"] == 40
-    assert built["staff_notes"] == "Check the MPN." and "MPN" not in built["final_text"]
-    assert "TITLE" not in built["final_text"] and "Sure!" not in scripts.build_final_script(OLD_STYLE_ANSWER)
-
-
-def test_saved_finals_from_before_are_rebuilt_but_edits_are_kept(client, stock):
-    old_final = f"{scripts.final_boilerplate()}\n\n{NEW_STYLE_ANSWER}"
-    ScriptCache.objects.create(sku_normalized="LAP-1", sku_display="LAP-1", chatgpt_text=NEW_STYLE_ANSWER, final_text=old_final)
+def test_saved_finals_from_before_are_rebuilt_but_edits_are_kept(client, stock, shop_notes):
+    answer = _listing_answer(shop_notes)
+    old_final = f"{scripts.final_boilerplate()}\n\n{answer}"
+    ScriptCache.objects.create(sku_normalized="LAP-1", sku_display="LAP-1", chatgpt_text=answer, final_text=old_final)
     loaded = client.get(reverse("api_script", args=["LAP-1"])).json()
-    assert "TITLE:" not in loaded["final_text"] and "Item Specifics\n- Brand: HP" in loaded["final_text"]
-    assert loaded["title"].startswith("HP EliteDesk") and loaded["staff_notes"] == "Check the MPN."
+    assert "Sure!" not in loaded["final_text"] and loaded["final_text"].endswith("Inventory Number: CB2-1")
+    assert loaded["title"].startswith("Panasonic") and loaded["staff_notes"].startswith("Suggested eBay Price")
 
     ScriptCache.objects.filter(sku_normalized="LAP-1").update(final_text="Hand-edited listing")
     assert client.get(reverse("api_script", args=["LAP-1"])).json()["final_text"] == "Hand-edited listing"

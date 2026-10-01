@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from django.conf import settings
@@ -10,34 +10,6 @@ from django.utils import timezone
 
 from core.skus import normalize_sku
 from inventory.models import IntakeDraft, Item, ScriptCache
-
-FACT_LABELS = [
-    ("sku", "SKU"),
-    ("status", "Status"),
-    ("what_is_it", "What Is It"),
-    ("date_received", "Date Received"),
-    ("source", "Source"),
-    ("functional", "Functional"),
-    ("condition", "Condition"),
-    ("cords_adapters", "Cords Adapters"),
-    ("keep_items_together", "Keep Items Together"),
-    ("picture_taken", "Picture Taken"),
-    ("power_on", "Power On"),
-    ("brand_model", "Brand Model"),
-    ("ram", "RAM"),
-    ("ssd_gb", "SSD GB"),
-    ("cpu", "CPU"),
-    ("os", "OS"),
-    ("battery_health", "Battery Health"),
-    ("graphics_card", "Graphics Card"),
-    ("screen_resolution", "Screen Resolution"),
-    ("where_it_goes", "Where It Goes"),
-    ("ebay_status", "eBay Status"),
-    ("price", "Price"),
-    ("in_ebay_room", "In eBay Room"),
-    ("what_box", "What Box"),
-    ("notes", "Notes"),
-]
 
 # The shop's own listing policy text (shipping times, testing, returns...) is business
 # material, so it lives in a private file next to the database, not in the code:
@@ -70,94 +42,81 @@ def using_example_boilerplate() -> bool:
     return final_boilerplate() == DEFAULT_BOILERPLATE
 
 
-def item_facts(item: Item) -> dict[str, str]:
-    facts = {}
-    for field, _label in FACT_LABELS:
-        if field == "price":
-            value = "" if item.price is None else str(item.price)
-        elif field == "date_received":
-            value = item.date_received.isoformat() if item.date_received else ""
-        else:
-            value = getattr(item, field, "")
-        facts[field] = "" if value is None else str(value).strip()
-    return facts
+TITLE_LIMIT = 80
+
+# Item fields given to ChatGPT as "provided specs" (the old Dispo.list builder's list, with the
+# fields Dispodex keeps). Condition and testing are left out: the rules say not to mention them.
+SPEC_FIELDS = [
+    ("brand_model", "Brand / Model"),
+    ("what_is_it", "Type"),
+    ("cpu", "Processor"),
+    ("ram", "RAM"),
+    ("ssd_gb", "Storage"),
+    ("graphics_card", "Graphics Card"),
+    ("screen_resolution", "Screen Resolution"),
+    ("os", "Operating System"),
+    ("battery_health", "Battery Health"),
+    ("cords_adapters", "Included Cables / Adapters"),
+]
+_EMPTY_VALUES = {"", "n/a", "na", "none", "-", "—", "null", "unknown"}
+
+
+def provided_specs(item: Item) -> list[str]:
+    lines = []
+    for name, label in SPEC_FIELDS:
+        value = str(getattr(item, name, "") or "").strip()
+        if value.lower() not in _EMPTY_VALUES:
+            lines.append(f"{label}: {value}")
+    return lines
 
 
 def build_prompt(sku: str, item: Item) -> str:
-    facts = item_facts(item)
-    lines = [f"SKU: {sku}"]
-    for field, label in FACT_LABELS:
-        if field == "sku":
-            continue
-        if facts[field]:
-            lines.append(f"{label}: {facts[field]}")
-    return "\n".join(
-        [
-            "You are helping me prepare an eBay listing from an internal inventory record.",
-            "",
-            "Use the facts below as the source of truth. Do not invent details. If a field is missing, omit it.",
-            "If the item looks like a computer or electronics device, you may research missing public specs such as model family, UPC, MPN, dimensions, storage type, and ports using reliable sources.",
-            "Keep the result factual and neutral. Do not use sales language or unsupported claims.",
-            "",
-            "Reply in plain text (no Markdown, no ** or #) in exactly this format, with these four headings:",
-            "",
-            "TITLE:",
-            f"(the eBay title, {TITLE_LIMIT} characters max)",
-            "",
-            "DESCRIPTION:",
-            "(a concise description for buyers, in short paragraphs)",
-            "",
-            "ITEM SPECIFICS:",
-            "(one per line, as Name: Value)",
-            "",
-            "NOTES FOR STAFF:",
-            "(missing facts worth researching, or a packaging note; this part is not posted on eBay)",
-            "",
-            "Inventory record:",
-            "\n".join(f"- {line}" for line in lines),
-        ]
-    )
+    """The old Dispo.list eBay script prompt: ChatGPT writes the whole listing, shop notes included."""
+    specs = "\n".join(provided_specs(item))
+    return f"""Generate a concise eBay listing for this item. ONLY include information that is explicitly provided below - do not add extra specs or features not listed here.
+
+PROVIDED SPECS:
+{specs}
+SKU: {sku}
+
+INSTRUCTIONS:
+1. Start with a recommended eBay title (max {TITLE_LIMIT} characters) using only the brand, model, and key provided specs.
+
+2. FIRST, include this EXACT boilerplate text (copy it exactly as shown):
+
+{final_boilerplate()}
+
+3. THEN, add a "Product Details" section with:
+   - Brand and model
+   - Battery health if provided
+   - Charger/cables/accessories if specified
+   - UPC and MPN only if you can verify them
+   - Don't mention storage unless it's explicitly provided
+   - If something is not provided, only include stuff that is guaranteed to be true
+
+4. End the Product Details section with: Inventory Number: {sku}
+
+5. After the product details, add a brief section with:
+   - Suggested eBay price based on similar sold items
+   - Recommended USPS shipping method with estimated cost
+
+RULES:
+- Be concise - only include provided information
+- No sales language or opinions
+- No condition mentions
+- No warranty mentions
+- No operating system unless specified
+- Do not invent specs not provided above"""
 
 
-TITLE_LIMIT = 80
-
-# Section headings in ChatGPT's answer, matched on the heading's words (lowercase, no numbering
-# or Markdown). Covers the headings the prompt asks for and the older numbered ones
-# ("1. A recommended eBay title, 80 characters max", "4. Any missing facts worth researching").
-_SECTIONS = [
-    ("title", re.compile(r"^(?:ebay |listing |item )?title\b")),
-    ("specifics", re.compile(r"^(?:ebay )?(?:item )?specifics\b|^item specs\b|^specifications\b")),
-    ("description", re.compile(r"^(?:concise |short |item |product |listing |ebay |full )*description\b")),
-    ("notes", re.compile(
-        r"^(?:notes? for (?:staff|us|the team)|staff notes?|internal notes?|missing (?:facts|details|info)"
-        r"|facts worth researching|things to research|research notes?|(?:short )?(?:shipping|packaging)\b)"
-    )),
-]
-_FILLER = re.compile(r"^(?:a|an|the|your|my|any|key|suggested|recommended|proposed|final|optional)\s+")
-
-
-def _heading(line: str) -> tuple[str, str] | None:
-    """(section, text after the colon) when ``line`` is a section heading, else None."""
-    text = re.sub(r"^[#>\s]+", "", line.strip())
-    text = text.replace("**", "").replace("__", "").strip()
-    text = re.sub(r"^\d+[.)]\s*", "", text)
-    head, colon, rest = text.partition(":")
-    words = re.sub(r"\(.*?\)", " ", head).lower()
-    words = " ".join(re.sub(r"[^a-z ]+", " ", words).split())
-    while _FILLER.match(words):
-        words = _FILLER.sub("", words, count=1)
-    if not words or len(words.split()) > 9:
-        return None
-    for name, pattern in _SECTIONS:
-        if pattern.match(words):
-            return name, rest.strip() if colon else ""
-    return None
+_TITLE_HEADING = re.compile(r"^(?:(?:a|the|recommended|suggested|ebay|listing)\s+)*title\b")
+_CHATTER = re.compile(r"^(?:sure|here|certainly|absolutely|of course|okay|ok)\b", re.I)
 
 
 def _plain(line: str) -> str:
     """One line without Markdown: **bold**, `code`, # headings; * bullets become - bullets."""
     line = re.sub(r"\*\*(.+?)\*\*|__(.+?)__", lambda m: m.group(1) or m.group(2), line.rstrip())
-    line = line.replace("`", "")
+    line = line.replace("**", "").replace("`", "")
     line = re.sub(r"^\s*#+\s*", "", line)
     return re.sub(r"^(\s*)[*•]\s+", r"\1- ", line)
 
@@ -168,64 +127,92 @@ def _tidy(lines: list[str]) -> str:
     return re.sub(r"\n\s*\n(\s*\n)+", "\n\n", text)
 
 
+def _words(line: str) -> str:
+    """A line's words for matching headings: lowercase, no Markdown, numbering or punctuation."""
+    text = re.sub(r"^\d+[.)]\s*", "", _plain(line).strip())
+    return " ".join(re.sub(r"[^a-z0-9 ]+", " ", text.lower()).split())
+
+
+def _title_heading(line: str) -> tuple[bool, str]:
+    """(is a title heading, the title when it is on the same line)."""
+    plain = re.sub(r"^\d+[.)]\s*", "", _plain(line).strip())
+    head, colon, rest = plain.partition(":")
+    words = " ".join(re.sub(r"\(.*?\)", " ", head).lower().split())
+    if len(words.split()) <= 6 and _TITLE_HEADING.match(words):
+        return True, rest.strip() if colon else ""
+    return False, ""
+
+
+def _unquote(title: str) -> str:
+    if len(title) > 1 and (title[0], title[-1]) in {('"', '"'), ("'", "'"), ("“", "”")}:
+        return title[1:-1].strip()  # quoted as a whole, but keep an inch mark like 15.6"
+    return title
+
+
 @dataclass
 class ParsedAnswer:
     title: str = ""
     description: str = ""
-    specifics: list[str] = field(default_factory=list)
     notes: str = ""
 
 
 def parse_answer(text: str) -> ParsedAnswer:
-    """Split ChatGPT's answer into title, description, item specifics and notes for staff.
+    """Split ChatGPT's listing into the title, the description and the notes for staff.
 
-    Anything before the first heading ("Sure! Here's your listing:") is dropped. An answer with
-    no recognisable headings is used as the description as-is.
+    The answer follows the prompt: a recommended title, the shop notes, Product Details ending
+    with "Inventory Number: SKU", then a suggested price and shipping method. The price and
+    shipping part is for staff, not buyers. Chatter before the title is dropped.
     """
-    sections: dict[str, list[str]] = {"title": [], "description": [], "specifics": [], "notes": []}
-    preamble: list[str] = []
-    current = None
-    for line in (text or "").replace("\r\n", "\n").split("\n"):
-        heading = _heading(line)
-        if heading:
-            current, rest = heading
-            if rest:
-                sections[current].append(rest)
-        elif current:
-            sections[current].append(line)
-        else:
-            preamble.append(line)
-    if current is None:
-        sections["description"] = preamble
-    title_lines = [_plain(line).strip() for line in sections["title"] if line.strip()]
-    specifics = []
-    for line in sections["specifics"]:
-        line = re.sub(r"^(?:[-*•]|\d+[.)])\s*", "", _plain(line).strip())
-        if line:
-            specifics.append(line)
-    title = title_lines[0] if title_lines else ""
-    if len(title) > 1 and (title[0], title[-1]) in {('"', '"'), ("'", "'"), ("“", "”")}:
-        title = title[1:-1].strip()  # quoted as a whole, but keep an inch mark like 15.6"
-    return ParsedAnswer(
-        title=title,
-        description=_tidy(sections["description"]),
-        specifics=specifics,
-        notes=_tidy(sections["notes"]),
-    )
+    lines = (text or "").replace("\r\n", "\n").split("\n")
+    first_note = next((line for line in final_boilerplate().split("\n") if line.strip()), "")
+    notes_start = _words(first_note)
+
+    # Everything after the "Inventory Number" line: suggested price and shipping.
+    inventory = [i for i, line in enumerate(lines) if _words(line).startswith(("inventory number", "inventory no"))]
+    staff = lines[inventory[-1] + 1:] if inventory else []
+    body = lines[: inventory[-1] + 1] if inventory else lines
+
+    shop_notes = next((i for i, line in enumerate(body) if notes_start and _words(line) == notes_start), None)
+    details = next((i for i, line in enumerate(body) if _words(line).startswith("product details")), None)
+    listing_start = next((i for i in (shop_notes, details) if i is not None), None)
+
+    # The title: a "Title:" heading near the top, else the last plain line before the listing starts.
+    title, after_title = "", 0
+    for i, line in enumerate(body[: listing_start if listing_start is not None else 12]):
+        is_heading, same_line = _title_heading(line)
+        if is_heading:
+            following = next((j for j in range(i + 1, len(body)) if body[j].strip()), None)
+            if same_line:
+                title, after_title = same_line, i + 1
+            elif following is not None:
+                title, after_title = _plain(body[following]).strip(), following + 1
+            break
+    if not title and listing_start:
+        lead = [_plain(line).strip() for line in body[:listing_start]]
+        lead = [line for line in lead if line and not line.endswith(":") and not _CHATTER.match(line)]
+        if lead and len(lead[-1]) <= 120:
+            title = lead[-1]
+
+    if details is not None:
+        # Use the shop notes exactly as written, even if ChatGPT reworded its copy.
+        description = f"{final_boilerplate()}\n\n{_tidy(body[details:])}"
+    elif shop_notes is not None:
+        description = _tidy(body[shop_notes:])
+    else:
+        # An answer without the shop notes (e.g. to an older prompt): add them on top.
+        rest = _tidy(body[after_title:])
+        description = f"{final_boilerplate()}\n\n{rest}" if rest else ""
+    return ParsedAnswer(title=_unquote(title), description=description, notes=_tidy(staff))
 
 
 def build_listing(chatgpt_text: str) -> dict:
-    """The eBay title, the final description (shop notes, description, item specifics) and staff notes."""
+    """The eBay title, the final description and the notes for staff, from ChatGPT's answer."""
     parsed = parse_answer(chatgpt_text)
-    body = [parsed.description] if parsed.description else []
-    if parsed.specifics:
-        body.append("Item Specifics\n" + "\n".join(f"- {line}" for line in parsed.specifics))
-    final = f"{final_boilerplate()}\n\n" + "\n\n".join(body) if body else ""
     return {
         "title": parsed.title,
         "title_length": len(parsed.title),
         "title_limit": TITLE_LIMIT,
-        "final_text": final,
+        "final_text": parsed.description,
         "staff_notes": parsed.notes,
     }
 

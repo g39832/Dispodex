@@ -6,7 +6,7 @@
   <div>
     <nav class="crumbs"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>eBay script builder</span></nav>
     <h1 class="page-title">eBay script builder</h1>
-    <p class="page-desc">Turn an item into a ChatGPT prompt, paste the answer back, and get the finished eBay description with our standard notes.</p>
+    <p class="page-desc">Copy the prompt into ChatGPT and paste its answer back: it writes the whole listing, our standard notes included. The suggested price and shipping are shown for you, not put in the listing.</p>
   </div>
   <div class="head-actions">
     <span class="save-state" id="script-state"></span>
@@ -50,7 +50,7 @@
         <span class="step-title"><span class="step-num">2</span> Paste ChatGPT's answer</span>
         <button type="button" class="btn btn-sm btn-ghost" id="clear-answer">Clear</button>
       </div>
-      <textarea class="input editor" id="chatgpt-text" spellcheck="false" placeholder="Paste ChatGPT's whole answer here. The title, description and item specifics are picked out of it."></textarea>
+      <textarea class="input editor" id="chatgpt-text" spellcheck="false" placeholder="Paste ChatGPT's whole answer here. The title is picked out and the rest becomes the listing."></textarea>
     </div>
     <div class="step">
       <div class="step-head">
@@ -66,7 +66,7 @@
         <button type="button" class="btn btn-sm" id="copy-title">{% icon "copy" %} Copy title</button>
       </div>
       <label class="field-label" for="final-text" style="margin-top:12px;display:block">Description</label>
-      <textarea class="input editor" id="final-text" spellcheck="false" style="min-height:320px" placeholder="Our standard listing notes, then ChatGPT's description and item specifics, appear here."></textarea>
+      <textarea class="input editor" id="final-text" spellcheck="false" style="min-height:320px" placeholder="Our standard listing notes, then the Product Details ending with the inventory number, appear here."></textarea>
       <div class="callout info" id="staff-notes-box" hidden>{% icon "info" %}<div><strong>Notes for staff</strong> <span class="faint">(not in the listing)</span><div id="staff-notes" style="white-space:pre-wrap;margin-top:4px"></div></div></div>
       <p class="hint">Everything saves automatically for this SKU. You can edit the description; pasting a new answer rebuilds it.</p>
     </div>
