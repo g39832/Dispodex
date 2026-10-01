@@ -160,6 +160,10 @@ def inventory_zip(items: list[Item], csv_name: str, columns=EXPORT_COLUMNS):
             archive.writestr(f"{folder}/", "")
             count = 0
             for photo in photos.get(item.sku_normalized, []):
+                try:
+                    photo_service.widen_photo(photo)  # in case start-up hasn't reached it yet
+                except (OSError, ValueError, SyntaxError):
+                    pass
                 path = photo_service.photo_path(photo)
                 if not path.exists():
                     continue

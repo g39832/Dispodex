@@ -1,3 +1,5 @@
+import io
+
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -56,6 +58,27 @@ def test_existing_small_photos_are_widened_and_originals_kept(settings, image):
         assert stored.size == (500, 250)
     assert original.exists()  # an older database backup still finds its photo
     assert photo_service.widen_small_photos().widened == 0  # already done
+
+
+def test_photo_grids_and_full_photos_are_never_under_500px(client, settings, image):
+    settings.PINKSHEET = {**settings.PINKSHEET, "PHOTO_MIN_WIDTH": 0}
+    photo = photo_service.save_sku_photo("SKU-1", image(size=(240, 320)))  # like an old, not-yet-widened photo
+    settings.PINKSHEET = {**settings.PINKSHEET, "PHOTO_MIN_WIDTH": 500}
+    url = reverse("photo", args=[photo.pk])
+
+    grid = client.get(url + "?thumb=wide")
+    with Image.open(io.BytesIO(b"".join(grid.streaming_content))) as shown:
+        assert shown.size == (500, 667)
+    with Image.open(io.BytesIO(b"".join(client.get(url + "?thumb=1").streaming_content))) as small:
+        assert small.size == (240, 320)  # list thumbnails stay small and fast
+
+    full = client.get(url + "?download=1")
+    with Image.open(io.BytesIO(b"".join(full.streaming_content))) as saved:
+        assert saved.size == (500, 667)
+    photo.refresh_from_db()
+    with Image.open(photo_service.photo_path(photo)) as stored:
+        assert stored.width == 500
+    assert "?thumb=wide" in client.get(reverse("intake") + "?sku=SKU-1").content.decode()
 
 
 def test_non_images_are_rejected(client):

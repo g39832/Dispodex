@@ -183,28 +183,36 @@ def widen_small_photos(progress=None) -> WidenResult:
     checked from their file header, so this is quick to run on every start.
     """
     result = WidenResult()
-    width = min_width()
-    if not width:
+    if not min_width():
         return result
     for photo in Photo.objects.order_by("id").iterator():
-        path = photo_path(photo)
-        if not path.exists():
-            continue
         try:
-            stored = widen_file(path, width)
+            widened = widen_photo(photo)
         except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
-            logger.warning("Could not widen photo %s (%s)", photo.pk, path)
+            logger.warning("Could not widen photo %s (%s)", photo.pk, photo_path(photo))
             result.failed += 1
             continue
-        if stored is None:
-            continue
-        Photo.objects.filter(pk=photo.pk).update(
-            stored_name=stored.stored_name, mime_type=stored.mime_type, file_size=stored.file_size,
-        )
-        result.widened += 1
-        if progress and result.widened % 250 == 0:
-            progress(result.widened)
+        if widened:
+            result.widened += 1
+            if progress and result.widened % 250 == 0:
+                progress(result.widened)
     return result
+
+
+def widen_photo(photo: Photo) -> bool:
+    """Point ``photo`` at a widened copy when its file is narrower than the minimum. True if it was."""
+    width = min_width()
+    path = photo_path(photo)
+    if not width or not path.exists():
+        return False
+    stored = widen_file(path, width)
+    if stored is None:
+        return False
+    Photo.objects.filter(pk=photo.pk).update(
+        stored_name=stored.stored_name, mime_type=stored.mime_type, file_size=stored.file_size,
+    )
+    photo.stored_name, photo.mime_type, photo.file_size = stored.stored_name, stored.mime_type, stored.file_size
+    return True
 
 
 def delete_photo(photo: Photo) -> None:
@@ -278,19 +286,28 @@ def thumb_dir() -> Path:
     return path
 
 
-def thumbnail_file(photo: Photo, size: int = THUMB_SIZE) -> Path | None:
-    """A cached small JPEG for fast grids; rebuilt automatically if the photo changes."""
+def thumbnail_file(photo: Photo, size: int = THUMB_SIZE, *, width: int = 0) -> Path | None:
+    """A cached small JPEG for fast grids; rebuilt automatically if the photo changes.
+
+    With ``width``, it is exactly that wide instead (enlarged if need be): the photo grids people
+    save or drag pictures from use eBay's minimum, so even a grabbed preview is big enough.
+    """
     source = photo_path(photo)
     if not source.exists():
         return None
-    target = thumb_dir() / f"{photo.pk}-{int(source.stat().st_mtime)}-t{size}.jpg"
+    label = f"w{width}" if width else f"t{size}"
+    target = thumb_dir() / f"{photo.pk}-{int(source.stat().st_mtime)}-{label}.jpg"
     if target.exists():
         return target
     try:
         with Image.open(source) as image:
             image.load()
             image = ImageOps.exif_transpose(image)
-            image.thumbnail((size, size), Image.Resampling.LANCZOS)
+            if width:
+                height = max(1, round(image.height * width / image.width))
+                image = image.resize((width, height), Image.Resampling.LANCZOS)
+            else:
+                image.thumbnail((size, size), Image.Resampling.LANCZOS)
             if image.mode in ("RGBA", "LA", "P"):
                 image = image.convert("RGBA")
                 background = Image.new("RGB", image.size, (255, 255, 255))

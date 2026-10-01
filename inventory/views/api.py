@@ -178,7 +178,7 @@ def _photo_json(photo: Photo) -> dict:
         "is_thumb": photo.is_thumb,
         "low_res": photo.low_res,
         "url": reverse("photo", args=[photo.pk]),
-        "thumb_url": reverse("photo", args=[photo.pk]) + "?thumb=1",
+        "thumb_url": reverse("photo", args=[photo.pk]) + "?thumb=wide",
     }
 
 

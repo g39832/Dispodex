@@ -37,7 +37,7 @@
       <div class="panel-body">
         {% if photos %}
           <div class="strip" id="strip">
-            {% for photo in photos %}<img src="{% url 'photo' photo.id %}?thumb=1" data-src="{% url 'photo' photo.id %}" alt="{{ photo.original_name }}" draggable="true">{% endfor %}
+            {% for photo in photos %}<img src="{% url 'photo' photo.id %}?thumb=wide" data-src="{% url 'photo' photo.id %}" alt="{{ photo.original_name }}" draggable="true">{% endfor %}
           </div>
         {% else %}<p class="hint">No photos for this SKU yet.</p>{% endif %}
       </div>

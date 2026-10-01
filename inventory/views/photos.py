@@ -1,5 +1,6 @@
 """Serve photo files (full size, thumbnail or download) with browser caching."""
 import hashlib
+import logging
 import mimetypes
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from django.views.decorators.http import require_GET
 from core.skus import normalize_sku, sanitize_filename, sku_directory
 from inventory.models import Photo
 from inventory.services import photos as photo_service
+
+logger = logging.getLogger("pinksheet")
 
 
 def _cached_file_response(request, path: Path, content_type: str, *, download_name: str = "", max_age: int = 86400):
@@ -31,10 +34,17 @@ def _cached_file_response(request, path: Path, content_type: str, *, download_na
 @require_GET
 def serve_photo(request, photo_id: int):
     photo = get_object_or_404(Photo, pk=photo_id)
-    if request.GET.get("thumb") == "1":
-        thumb = photo_service.thumbnail_file(photo)
+    if request.GET.get("thumb") in ("1", "wide"):
+        # "wide": the photo grids people save pictures from, at least eBay's 500px minimum.
+        width = photo_service.min_width() if request.GET.get("thumb") == "wide" else 0
+        thumb = photo_service.thumbnail_file(photo, width=width)
         if thumb:
             return _cached_file_response(request, thumb, "image/jpeg", max_age=7 * 86400)
+    try:
+        # Normally done at start-up; this covers a photo the background pass hasn't reached yet.
+        photo_service.widen_photo(photo)
+    except (OSError, ValueError, SyntaxError):
+        logger.warning("Could not widen photo %s", photo.pk)
     path = photo_service.photo_path(photo)
     if not path.exists():
         raise Http404("Photo file is missing")
