@@ -180,6 +180,15 @@ def test_short_relative_times():
     assert ago(None) == ""
 
 
+def test_skus_only_wrap_at_spaces():
+    from core.templatetags.ui import sku
+    assert sku("CB2-0822-287") == '<span class="sku-part">CB2-0822-287</span>'
+    assert sku("GC-6202-88 (NEED <b>)") == (
+        '<span class="sku-part">GC-6202-88</span> <span class="sku-part">(NEED</span> <span class="sku-part">&lt;b&gt;)</span>'
+    )
+    assert sku(None) == ""
+
+
 def test_expired_form_shows_friendly_page():
     from django.test import Client
     strict = Client(enforce_csrf_checks=True)

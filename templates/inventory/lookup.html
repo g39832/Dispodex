@@ -174,7 +174,7 @@
                 <button type="button" class="thumb-btn" data-lightbox="{% url 'photo' row.thumb_id %}" title="{{ row.sku }}">
                   <img class="thumb" src="{% url 'photo' row.thumb_id %}?thumb=1" alt="" loading="lazy"></button>
               {% else %}<span class="thumb-empty" title="No photos"></span>{% endif %}
-              <a class="sku-link" href="{% url 'intake' %}?sku={{ row.sku_normalized|urlencode }}" data-recent-sku="{{ row.sku_normalized }}">{{ row.sku }}</a>
+              <a class="sku-link" href="{% url 'intake' %}?sku={{ row.sku_normalized|urlencode }}" data-recent-sku="{{ row.sku_normalized }}">{{ row.sku|sku }}</a>
             </div>
           </td>
           <td><span class="tag" data-status="{{ row.status }}">{{ row.status_label }}</span></td>

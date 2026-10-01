@@ -12,7 +12,7 @@
   <header class="head">
     <div class="thumb">{% if thumb %}<img src="{% url 'photo' thumb.id %}" alt="">{% endif %}</div>
     <div class="ident">
-      <div class="sku">{{ item.sku }}</div>
+      <div class="sku">{{ item.sku|sku }}</div>
       <div class="line"><b>Status</b> {{ item.status_label }} <span class="pill">{{ item.get_reviewed_display }}</span></div>
       {% if item.price is not None %}<div class="line"><b>Price</b> {{ item.price|money }}{% if item.quantity > 1 %} × {{ item.quantity }}{% endif %}</div>{% endif %}
       <div class="line"><b>Updated</b> {{ item.updated_at|date:"M j, Y g:i A" }}</div>

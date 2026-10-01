@@ -57,7 +57,7 @@
                 <img class="thumb" src="{% url 'photo' entry.thumb_id %}?thumb=1" alt="" loading="lazy"></button>
             {% else %}<span class="thumb-empty" title="No photo yet"></span>{% endif %}
             <div class="grow">
-              <a class="title" href="{% url 'intake' %}?sku={{ entry.sku_normalized|urlencode }}">{{ entry.sku }}</a>
+              <a class="title" href="{% url 'intake' %}?sku={{ entry.sku_normalized|urlencode }}">{{ entry.sku|sku }}</a>
               {% if entry.quantity > 1 %}<span class="tag blue">×{{ entry.quantity }}</span>{% endif %}
               <div class="sub">{{ entry.what_is_it|default:"—" }}</div>
             </div>

@@ -20,6 +20,12 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+  // Same as the |sku template filter: wraps only at spaces, never after a hyphen.
+  function skuHtml(value) {
+    return String(value == null ? '' : value).split(/\s+/).filter(Boolean).map(function (part) {
+      return '<span class="sku-part">' + escapeHtml(part) + '</span>';
+    }).join(' ');
+  }
 
   /* ── API ──────────────────────────────────────────────────────────── */
   function api(url, options) {
@@ -229,7 +235,7 @@
         .filter(Boolean).join(' · ');
       return '<a class="palette-result' + (index === 0 ? ' is-selected' : '') + '" href="/intake/?sku=' + encodeURIComponent(r.sku_normalized) + '">' +
         icon('box') +
-        '<span class="grow"><strong>' + escapeHtml(r.sku) + '</strong><div class="line2">' + escapeHtml(detail || '—') + '</div></span>' +
+        '<span class="grow"><strong>' + skuHtml(r.sku) + '</strong><div class="line2">' + escapeHtml(detail || '—') + '</div></span>' +
         '<span class="tag" data-status="' + escapeHtml(r.status) + '">' + escapeHtml(r.status_label) + '</span>' +
         (r.price ? '<span class="num muted">' + escapeHtml(r.price) + '</span>' : '') +
         '</a>';
@@ -353,6 +359,7 @@
     lightbox: lightbox,
     icon: icon,
     escapeHtml: escapeHtml,
+    skuHtml: skuHtml,
     csrfToken: csrfToken
   };
 })();

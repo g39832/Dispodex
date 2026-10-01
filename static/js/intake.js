@@ -672,6 +672,7 @@
       document.querySelectorAll('[data-print="' + name + '"]').forEach(function (el) { el.textContent = value || '—'; });
     };
     set('sku', currentSku());
+    document.querySelectorAll('[data-print="sku"]').forEach(function (el) { if (currentSku()) el.innerHTML = P.skuHtml(currentSku()); });
     set('status', statusSelect.options[statusSelect.selectedIndex].text);
     // ACTIVE / INACTIVE / SOLD, as the board shows it. Same rule as saving: the Sold lane means SOLD,
     // and leaving Sold drops back to INACTIVE.

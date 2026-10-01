@@ -11,7 +11,7 @@
   </div>
 
   <section class="panel panel-pad">
-    <h1 class="page-title" style="font-size:26px">{{ item.sku }}</h1>
+    <h1 class="page-title" style="font-size:26px">{{ item.sku|sku }}</h1>
     <p class="muted" style="margin-top:4px">{{ item.what_is_it|default:"—" }}{% if item.brand_model %} · {{ item.brand_model }}{% endif %}</p>
     <div class="title-meta">
       <span class="tag" data-status="{{ item.status }}" id="status-tag">{{ item.status_label }}</span>

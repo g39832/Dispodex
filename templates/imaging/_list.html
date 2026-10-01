@@ -34,7 +34,7 @@
 
       <div class="imaging-item">
         {% if report.item %}
-          <span>{% icon "link" %} Linked to <a href="{% url 'intake' %}?sku={{ report.item.sku_normalized|urlencode }}"><strong>{{ report.item.sku }}</strong></a> <span class="muted">{{ report.item.what_is_it }}</span></span>
+          <span>{% icon "link" %} Linked to <a href="{% url 'intake' %}?sku={{ report.item.sku_normalized|urlencode }}"><strong>{{ report.item.sku|sku }}</strong></a> <span class="muted">{{ report.item.what_is_it }}</span></span>
           {% if not demo %}
           <form method="post" action="{% url 'imaging_unlink' report.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Unlink</button></form>
           {% endif %}

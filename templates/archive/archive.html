@@ -42,7 +42,7 @@
     <tbody>
       {% for row in page_obj %}
         <tr>
-          <td class="nowrap"><strong>{{ row.sku|default:"—" }}</strong></td>
+          <td class="nowrap"><strong>{{ row.sku|default:"—"|sku }}</strong></td>
           <td>{{ row.display_title|default:"—" }}</td>
           <td><span class="tag">{{ row.status|default:"—" }}</span></td>
           <td class="nowrap">{% if row.sold_at %}{{ row.sold_at|date:"M j, Y" }}{% else %}<span class="faint">{{ row.created_at|date:"M j, Y" }}</span>{% endif %}</td>

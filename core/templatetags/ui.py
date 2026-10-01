@@ -2,7 +2,7 @@
 from decimal import Decimal
 
 from django import template
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 
 register = template.Library()
 
@@ -11,6 +11,13 @@ register = template.Library()
 def icon(name: str, extra_class: str = ""):
     """Inline SVG icon from the sprite in templates/partials/icons.html."""
     return format_html('<svg class="icon {}" aria-hidden="true"><use href="#i-{}"></use></svg>', extra_class, name)
+
+
+
+@register.filter
+def sku(value):
+    """A SKU that only wraps at spaces, never after a hyphen, so CB2-0822-287 stays in one piece."""
+    return format_html_join(" ", '<span class="sku-part">{}</span>', ((part,) for part in str(value or "").split()))
 
 
 @register.filter

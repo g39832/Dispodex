@@ -32,6 +32,8 @@ code { overflow-wrap: anywhere; }
 .faint { color: var(--text-faint); }
 .mono { font-family: var(--font-mono); }
 .nowrap { white-space: nowrap; }
+/* SKUs never break after a hyphen (CB2-0822- / 287 reads like two codes); notes after a space still wrap. */
+.sku-part { white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; }
 svg.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -374,7 +376,7 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .toolbar .search .icon { position: absolute; left: 9px; top: 8px; color: var(--text-faint); }
 .chips { display: flex; gap: 4px; flex-wrap: wrap; }
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; white-space: nowrap;
   border-radius: 999px; border: 1px solid var(--border); background: var(--bg);
   color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none;
 }
@@ -538,7 +540,7 @@ body.quick-mode .quick-hide { display: none !important; }
 /* ── Status board ──────────────────────────────────────────────────────── */
 .board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
 .lane {
-  flex: 1 1 0; min-width: 170px; background: var(--bg-subtle); border-radius: var(--radius-lg);
+  flex: 1 1 0; min-width: 185px; background: var(--bg-subtle); border-radius: var(--radius-lg);
   padding: 8px; min-height: 180px; transition: background 120ms ease;
 }
 .lane.is-drop-target { background: var(--blue-soft); }
@@ -572,8 +574,8 @@ body.quick-mode .quick-hide { display: none !important; }
 .card.is-highlight { box-shadow: 0 0 0 2px var(--green); }
 .card-cover { display: block; width: 100%; height: 104px; object-fit: cover; background: var(--bg-subtle); border-bottom: 1px solid var(--border); }
 .card-body { position: relative; padding: 9px 11px 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
-/* Names are never cut off: long SKUs and descriptions wrap onto more lines. */
-.card-sku { font-weight: 650; line-height: 1.3; text-decoration: none; overflow-wrap: anywhere; padding-right: 26px; }
+/* Names are never cut off: descriptions wrap onto more lines; SKUs wrap only at spaces. */
+.card-sku { font-weight: 650; line-height: 1.3; text-decoration: none; padding-right: 26px; }
 .card-sku:hover { text-decoration: underline; }
 .card-what { color: var(--text); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
 .card-brand { color: var(--text-muted); font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }

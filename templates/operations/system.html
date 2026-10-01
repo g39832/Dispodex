@@ -68,7 +68,7 @@
   <div class="table-wrap"><table class="table">
     <thead><tr><th>SKU</th><th>Job</th><th>State</th><th class="right">Tries</th><th>Next try</th><th>Last error</th></tr></thead>
     <tbody>{% for job in jobs %}<tr>
-      <td><a class="sku-link" href="{% url 'intake' %}?sku={{ job.sku_normalized|urlencode }}">{{ job.sku_normalized }}</a></td>
+      <td><a class="sku-link" href="{% url 'intake' %}?sku={{ job.sku_normalized|urlencode }}">{{ job.sku_normalized|sku }}</a></td>
       <td>{{ job.get_operation_display }}</td>
       <td><span class="tag {% if job.status == 'dead_letter' %}red{% elif job.status == 'retrying' %}amber{% else %}blue{% endif %}">{{ job.get_status_display }}</span></td>
       <td class="right num">{{ job.retry_count }}</td>
@@ -85,7 +85,7 @@
     <tbody>{% for row in audit %}<tr>
       <td class="nowrap">{{ row.timestamp|date:"M j, g:i:s A" }}</td>
       <td>{{ row.operation }}</td>
-      <td>{{ row.sku_normalized|default:"—" }}</td>
+      <td>{{ row.sku_normalized|default:"—"|sku }}</td>
       <td>{{ row.get_direction_display }}</td>
       <td><span class="tag {% if row.status == 'success' %}green{% elif row.status == 'failure' %}red{% endif %}">{{ row.status }}</span></td>
       <td class="muted">{{ row.error_message|default:row.response_summary|truncatechars:120 }}</td>

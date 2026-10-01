@@ -28,9 +28,9 @@
     var esc = P.escapeHtml;
     return (c.thumb_id ? '<img class="card-cover" src="/photos/' + c.thumb_id + '/?thumb=1" alt="" loading="lazy" draggable="false">' : '') +
       '<div class="card-body">' +
-        // Names wrap onto as many lines as they need: nothing is cut off.
+        // Names wrap onto as many lines as they need: nothing is cut off (SKUs only at spaces).
         '<button type="button" class="card-more" data-act="menu" aria-haspopup="dialog" aria-label="More actions for ' + esc(c.sku) + '" title="Move, QR code, print, delete">' + P.icon('more') + '</button>' +
-        '<a class="card-sku" href="/intake/?sku=' + encodeURIComponent(c.norm) + '" draggable="false">' + esc(c.sku) + '</a>' +
+        '<a class="card-sku" href="/intake/?sku=' + encodeURIComponent(c.norm) + '" draggable="false">' + P.skuHtml(c.sku) + '</a>' +
         '<div class="card-what">' + esc(c.what || '—') + '</div>' +
         (c.brand ? '<div class="card-brand">' + esc(c.brand) + '</div>' : '') +
         '<div class="card-meta card-extra">' +
