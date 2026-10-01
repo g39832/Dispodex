@@ -7,12 +7,17 @@ from django.utils import timezone
 class DocPost(models.Model):
     title = models.CharField(max_length=200)
     body = models.TextField(blank=True)
+    # Free text, so the team can start a new category just by typing it; matching names are reused.
+    category = models.CharField(max_length=40, blank=True, db_index=True)
     # Who wrote it, as shown on the post, plus the signed-in account when there is one.
     author = models.CharField(max_length=80)
     author_user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     created_at = models.DateTimeField(default=timezone.now)
     updated_by = models.CharField("last edited by", max_length=80, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
+    # Pinned posts sit above the rest of the list, most recently pinned first.
+    pinned_at = models.DateTimeField(null=True, blank=True)
+    pinned_by = models.CharField(max_length=80, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-id"]

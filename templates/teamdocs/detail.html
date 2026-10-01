@@ -9,6 +9,8 @@
     <div>
       <h1 class="page-title">{{ post.title }}</h1>
       <div class="doc-meta doc-byline">
+        {% if post.category %}<a class="tag" href="{% url 'docs' %}?category={{ post.category|urlencode }}" title="See all {{ post.category }} posts">{{ post.category }}</a>{% endif %}
+        {% if post.pinned_at %}<span class="doc-pinned-by" title="{{ post.pinned_at|date:'M j, Y g:i A' }}">{% icon "pin" %} Pinned by {{ post.pinned_by|default:"someone" }}</span>{% endif %}
         <span>{% icon "user" %} <strong>{{ post.author }}</strong></span>
         <span title="{{ post.created_at|date:'M j, Y g:i A' }}">Posted {{ post.created_at|date:"M j, Y \a\t g:i A" }}</span>
         {% if post.updated_at %}<span title="{{ post.updated_at|date:'M j, Y g:i A' }}">Edited by {{ post.updated_by }} {{ post.updated_at|ago }}</span>{% endif %}
@@ -16,6 +18,10 @@
     </div>
     {% if can_edit and not demo_mode %}
     <div class="head-actions">
+      <form method="post" action="{% url 'doc_pin' post.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn{% if post.pinned_at %} is-on{% endif %}" title="{% if post.pinned_at %}Put it back in date order{% else %}Keep it at the top of Team docs{% endif %}">{% icon "pin" %} {% if post.pinned_at %}Unpin{% else %}Pin to top{% endif %}</button>
+      </form>
       <a class="btn" href="{% url 'doc_edit' post.pk %}">{% icon "text" %} Edit</a>
       <form method="post" action="{% url 'doc_delete' post.pk %}" data-doc-delete data-title="{{ post.title }}">
         {% csrf_token %}

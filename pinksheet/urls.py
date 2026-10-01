@@ -31,6 +31,7 @@ urlpatterns = [
     path("docs/<int:post_id>/", doc_views.doc_detail, name="doc_detail"),
     path("docs/<int:post_id>/edit/", doc_views.doc_edit, name="doc_edit"),
     path("docs/<int:post_id>/delete/", doc_views.doc_delete, name="doc_delete"),
+    path("docs/<int:post_id>/pin/", doc_views.doc_pin, name="doc_pin"),
     path("card/<str:sku>/", pages.card_redirect, name="card"),
     path("m/<str:sku>/", pages.mobile_card, name="mobile_card"),
     path("print/<str:sku>/", pages.print_card, name="print_card"),

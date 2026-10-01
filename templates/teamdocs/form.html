@@ -32,6 +32,13 @@
                placeholder="e.g. New shipping cutoff time" {% if not post %}autofocus{% endif %}>
       </div>
       <div class="field">
+        <label class="field-label" for="doc-category">Category <span class="faint">· optional</span></label>
+        <input class="input" id="doc-category" name="category" maxlength="{{ max_category }}" value="{{ form.category }}"
+               list="doc-category-options" autocomplete="off" placeholder="e.g. How-to, Shipping, Policies">
+        <datalist id="doc-category-options">{% for name in categories %}<option value="{{ name }}">{% endfor %}</datalist>
+        <span class="hint">Pick one already in use or type a new one. Posts can be filtered by category on Team docs.</span>
+      </div>
+      <div class="field">
         <label class="field-label" for="doc-body">Details</label>
         <textarea class="input" id="doc-body" name="body" rows="12" maxlength="50000"
                   placeholder="Write the update here. Blank lines start a new paragraph and links become clickable.">{{ form.body }}</textarea>

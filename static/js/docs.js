@@ -1,7 +1,12 @@
-/* Team docs: preview picked photos before posting, and confirm before deleting a post. */
+/* Team docs: list filters, preview picked photos before posting, and confirm before deleting a post. */
 (function () {
   'use strict';
   var P = window.Pinksheet;
+
+  // "Posted by" applies as soon as it changes, like the category chips.
+  document.querySelectorAll('[data-doc-filters] [data-autosubmit]').forEach(function (select) {
+    select.addEventListener('change', function () { select.form.submit(); });
+  });
 
   var picker = document.querySelector('[data-doc-photos]');
   var preview = document.querySelector('[data-doc-preview]');

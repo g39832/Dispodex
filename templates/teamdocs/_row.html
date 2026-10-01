@@ -1,0 +1,14 @@
+{% load ui %}<a class="doc-row{% if post.pinned_at %} is-pinned{% endif %}" href="{% url 'doc_detail' post.pk %}">
+  <div class="doc-row-text">
+    <div class="doc-row-title">{% if post.pinned_at %}<span class="doc-pin-mark" title="Pinned">{% icon "pin" %}</span>{% endif %}{{ post.title }}</div>
+    {% if post.body %}<div class="doc-row-snippet">{{ post.body|truncatechars:180 }}</div>{% endif %}
+    <div class="doc-meta">
+      {% if post.category %}<span class="tag">{{ post.category }}</span>{% endif %}
+      <span>{% icon "user" %} {{ post.author }}</span>
+      <span title="{{ post.created_at|date:'M j, Y g:i A' }}">{{ post.created_at|date:"M j, Y" }}</span>
+      {% if post.photo_count %}<span>{% icon "image" %} {{ post.photo_count }} photo{{ post.photo_count|pluralize }}</span>{% endif %}
+      {% if post.updated_at %}<span class="faint">Edited</span>{% endif %}
+    </div>
+  </div>
+  {% if post.cover_id %}<img class="doc-row-cover" src="{% url 'doc_photo' post.cover_id %}" alt="" loading="lazy">{% endif %}
+</a>

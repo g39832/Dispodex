@@ -168,3 +168,75 @@ def test_backups_mirror_doc_photos(client, sam, image, tmp_path):
     client.post("/docs/new/", {"title": "Backed up", "photos": [image()]})
     assert backups.mirror_photos(tmp_path) == 1
     assert len([p for p in (tmp_path / "doc_photos").rglob("*") if p.is_file()]) == 1
+
+
+def test_pinned_posts_sit_above_the_rest(client, sam):
+    client.force_login(sam)
+    for title in ("Oldest post", "Middle post", "Newest post"):
+        client.post("/docs/new/", {"title": title})
+    oldest = DocPost.objects.get(title="Oldest post")
+    page = client.post(f"/docs/{oldest.pk}/pin/", follow=True).content.decode()
+    assert "Pinned to the top" in page and "Pinned by Sam" in page and "Unpin" in page
+
+    html = client.get("/docs/").content.decode()
+    assert "Everything else" in html
+    assert html.index("Oldest post") < html.index("Newest post") < html.index("Middle post")
+
+    client.post(f"/docs/{oldest.pk}/pin/")
+    oldest.refresh_from_db()
+    assert oldest.pinned_at is None and oldest.pinned_by == ""
+    html = client.get("/docs/").content.decode()
+    assert "Everything else" not in html and html.index("Middle post") < html.index("Oldest post")
+
+
+def test_only_the_author_or_staff_can_pin(client, sam, django_user_model):
+    client.force_login(sam)
+    client.post("/docs/new/", {"title": "Sam's post"})
+    post = DocPost.objects.get()
+    client.force_login(django_user_model.objects.create_user("jo", password="x"))
+    assert "/pin/" not in client.get(f"/docs/{post.pk}/").content.decode()
+    client.post(f"/docs/{post.pk}/pin/")
+    post.refresh_from_db()
+    assert post.pinned_at is None
+    client.force_login(django_user_model.objects.create_user("boss", password="x", first_name="Boss", is_staff=True))
+    client.post(f"/docs/{post.pk}/pin/")
+    post.refresh_from_db()
+    assert post.pinned_at and post.pinned_by == "Boss"
+    assert client.get(f"/docs/{post.pk}/pin/").status_code == 405
+
+
+def test_categories_reuse_spelling_and_filter_the_list(client, sam):
+    client.force_login(sam)
+    client.post("/docs/new/", {"title": "Label printer", "category": "How-to"})
+    client.post("/docs/new/", {"title": "Wipe a laptop", "category": "  how-TO "})
+    client.post("/docs/new/", {"title": "Holiday hours", "category": "Policies"})
+    client.post("/docs/new/", {"title": "No category post"})
+    assert set(DocPost.objects.values_list("category", flat=True)) == {"How-to", "Policies", ""}
+
+    html = client.get("/docs/").content.decode()
+    assert "How-to <span class=\"count\">2</span>" in html and "Policies <span class=\"count\">1</span>" in html
+    html = client.get("/docs/?category=how-to").content.decode()
+    assert "Label printer" in html and "Wipe a laptop" in html
+    assert "Holiday hours" not in html and "No category post" not in html
+    assert 'href="/docs/new/?category=how-to"' in html  # new posts start in the category being viewed
+    assert "Holiday hours" in client.get("/docs/?q=polic").content.decode()  # search covers categories
+
+    post = DocPost.objects.get(title="Holiday hours")
+    client.post(f"/docs/{post.pk}/edit/", {"title": "Holiday hours", "category": ""})
+    post.refresh_from_db()
+    assert post.category == ""
+    assert 'value="How-to"' in client.get("/docs/new/").content.decode()  # suggested on the form
+
+
+def test_filter_by_who_posted_and_pages_keep_filters(client, sam, django_user_model):
+    client.force_login(sam)
+    for n in range(21):
+        client.post("/docs/new/", {"title": f"Sam note {n}", "category": "Notes"})
+    client.force_login(django_user_model.objects.create_user("jo", password="x", first_name="Jo"))
+    client.post("/docs/new/", {"title": "Jo note", "category": "Notes"})
+
+    html = client.get("/docs/?author=Jo").content.decode()
+    assert "Jo note" in html and "Sam note" not in html
+    html = client.get("/docs/?author=Sam&category=Notes").content.decode()
+    assert "Jo note" not in html and "?category=Notes&amp;author=Sam&amp;page=2" in html
+    assert "No posts match these filters" in client.get("/docs/?author=Nobody").content.decode()
