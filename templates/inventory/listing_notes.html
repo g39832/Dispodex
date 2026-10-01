@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}eBay listing notes{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'scripts' %}">eBay script builder</a> <span>/</span></div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">eBay listing notes</h1>
+    <p class="page-desc">The "Please Read This First" text that goes at the top of every eBay description. The script builder puts it in the ChatGPT prompt and in the final description, word for word.</p>
+  </div>
+</div>
+
+<div class="doc-form">
+  {% if example %}
+    <div class="callout warn">{% icon "alert" %}<span>No listing notes are saved on this server yet, so the script builder is using example wording. Paste the shop's notes below and save.</span></div>
+  {% endif %}
+  {% if error %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endif %}
+  {% if can_edit %}
+    <form method="post" class="stack" style="gap:12px">
+      {% csrf_token %}
+      <label class="field-label" for="notes-text">Listing notes</label>
+      <textarea class="input editor" id="notes-text" name="text" rows="24" maxlength="{{ max_length }}" spellcheck="true" required
+                placeholder="Please Read This First&#10;This product previously belonged to someone who…">{{ text }}</textarea>
+      <div class="head-actions">
+        <button type="submit" class="btn btn-primary">{% icon "check" %} Save listing notes</button>
+        <a class="btn btn-ghost" href="{% url 'scripts' %}">Back to script builder</a>
+        {% if last_edit %}<span class="hint" style="margin-left:auto">Last changed by {{ last_edit }}</span>{% endif %}
+      </div>
+    </form>
+  {% else %}
+    <div class="callout info">{% icon "info" %}<span>Only staff can change the listing notes.{% if last_edit %} Last changed by {{ last_edit }}.{% endif %}</span></div>
+    <pre class="doc-body" style="white-space:pre-wrap;font-family:inherit">{{ text|default:"No listing notes saved yet." }}</pre>
+  {% endif %}
+</div>
+{% endblock %}

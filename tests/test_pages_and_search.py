@@ -345,3 +345,31 @@ def test_prints_show_active_inactive(client, stock):
     assert b'data-reviewed="0"' in client.get("/intake/?new=1").content
     assert b'<span class="pill">ACTIVE</span>' in client.get("/print/LAP-1/").content
     assert b'<span class="pill">SOLD</span>' in client.get("/print/LAP-2/").content
+
+
+def test_staff_edit_listing_notes_in_the_browser(client, settings, tmp_path, django_user_model):
+    notes_file = tmp_path / "data" / "ebay_boilerplate.txt"
+    settings.PINKSHEET = {**settings.PINKSHEET, "EBAY_BOILERPLATE_FILE": notes_file, "REQUIRE_LOGIN": True}
+    url = reverse("listing_notes")
+    boss = django_user_model.objects.create_user("boss", password="x", first_name="Boss", is_staff=True)
+    client.force_login(boss)
+    assert "No listing notes are saved on this server yet" in client.get(url).content.decode()
+
+    page = client.post(url, {"text": "Please Read This First  \r\nShips Tue-Sat\r\n\r\n"}, follow=True).content.decode()
+    assert "Listing notes saved" in page and "Last changed by Boss" in page
+    assert notes_file.read_text(encoding="utf-8") == "Please Read This First\nShips Tue-Sat\n"
+    assert scripts.final_boilerplate() == "Please Read This First\nShips Tue-Sat"
+    assert "listing notes file" not in client.get("/scripts/").content.decode()
+    assert "can&#x27;t be empty" in client.post(url, {"text": "   "}).content.decode()  # refused, file kept
+    assert notes_file.read_text(encoding="utf-8") == "Please Read This First\nShips Tue-Sat\n"
+
+
+def test_only_staff_can_change_listing_notes(client, settings, tmp_path, django_user_model):
+    notes_file = tmp_path / "ebay_boilerplate.txt"
+    notes_file.write_text("Original notes\n", encoding="utf-8")
+    settings.PINKSHEET = {**settings.PINKSHEET, "EBAY_BOILERPLATE_FILE": notes_file, "REQUIRE_LOGIN": True}
+    client.force_login(django_user_model.objects.create_user("jo", password="x"))
+    html = client.get(reverse("listing_notes")).content.decode()
+    assert "Only staff can change" in html and "Original notes" in html and "<textarea" not in html
+    client.post(reverse("listing_notes"), {"text": "Hijacked"})
+    assert notes_file.read_text(encoding="utf-8") == "Original notes\n"

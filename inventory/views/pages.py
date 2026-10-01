@@ -1,14 +1,18 @@
 """Status board, script builder, listing-image composer, phone page and print card."""
 from django.conf import settings
+from django.contrib import messages
 from django.http import Http404, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from core.network import is_private_request
 from core.skus import normalize_sku
 from inventory.models import Item, ListingImageLayout, Photo, Status
 from inventory.services import history
+from inventory.services import scripts as script_service
 from inventory.services.scripts import using_example_boilerplate
+from operations.models import SystemState
 
 MOBILE_UA_MARKERS = ("android", "iphone", "ipad", "ipod", "mobile", "opera mini", "iemobile", "silk", "blackberry", "windows phone")
 
@@ -39,6 +43,44 @@ def script_builder(request):
         "inventory/scripts.html",
         {"page": "scripts", "sku": sku, "recent_skus": recent_skus(), "example_boilerplate": using_example_boilerplate()},
     )
+
+
+LISTING_NOTES_EDITED_KEY = "ebay_listing_notes_edited"
+
+
+def _can_edit_listing_notes(request) -> bool:
+    """Staff when signed in; without sign-in, anyone on the shop network. Never in the demo."""
+    if settings.PINKSHEET["DEMO_MODE"]:
+        return False
+    if request.user.is_authenticated:
+        return request.user.is_staff
+    return not settings.PINKSHEET["REQUIRE_LOGIN"] and is_private_request(request)
+
+
+def listing_notes(request):
+    """View and edit the shop's eBay listing notes (data/ebay_boilerplate.txt) from the browser."""
+    can_edit = _can_edit_listing_notes(request)
+    example = using_example_boilerplate()
+    text = "" if example else script_service.final_boilerplate()
+    error = ""
+    if request.method == "POST":
+        if not can_edit:
+            messages.error(request, "Only staff can change the listing notes.")
+            return redirect("listing_notes")
+        text = request.POST.get("text", "")
+        if not text.strip():
+            error = "The listing notes can't be empty."
+        elif len(text) > script_service.MAX_BOILERPLATE:
+            error = f"That's longer than {script_service.MAX_BOILERPLATE:,} characters."
+        else:
+            script_service.save_boilerplate(text)
+            SystemState.set(LISTING_NOTES_EDITED_KEY, f"{request.actor} · {timezone.localtime():%b %d, %Y %I:%M %p}")
+            messages.success(request, "Listing notes saved. New prompts and descriptions use them right away.")
+            return redirect("listing_notes")
+    return render(request, "inventory/listing_notes.html", {
+        "page": "scripts", "text": text, "example": example, "can_edit": can_edit, "error": error,
+        "last_edit": SystemState.get(LISTING_NOTES_EDITED_KEY), "max_length": script_service.MAX_BOILERPLATE,
+    })
 
 
 def listing_images(request):

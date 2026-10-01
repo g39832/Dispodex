@@ -37,6 +37,20 @@ def final_boilerplate() -> str:
     return text.rstrip("\r\n") or DEFAULT_BOILERPLATE
 
 
+MAX_BOILERPLATE = 20000
+
+
+def save_boilerplate(text: str) -> None:
+    """Write the shop's listing notes file (written whole, so a reader never sees half a file)."""
+    lines = (text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    cleaned = "\n".join(line.rstrip() for line in lines).strip("\n")
+    path = Path(settings.PINKSHEET["EBAY_BOILERPLATE_FILE"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_name(path.name + ".tmp")
+    temp.write_text(cleaned + "\n", encoding="utf-8", newline="\n")
+    temp.replace(path)
+
+
 def using_example_boilerplate() -> bool:
     """True when the shop's own listing notes file is missing, so the generic example is used."""
     return final_boilerplate() == DEFAULT_BOILERPLATE

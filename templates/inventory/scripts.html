@@ -10,11 +10,12 @@
   </div>
   <div class="head-actions">
     <span class="save-state" id="script-state"></span>
+    <a class="btn btn-sm btn-ghost" href="{% url 'listing_notes' %}">{% icon "text" %} Listing notes</a>
   </div>
 </div>
 
 {% if example_boilerplate %}
-<div class="callout warn">{% icon "alert" %}<span>The shop's listing notes file wasn't found on this server, so the final description uses example wording. Put the notes in <code>data/ebay_boilerplate.txt</code> (plain text) and reload.</span></div>
+<div class="callout warn">{% icon "alert" %}<span>The shop's listing notes file wasn't found on this server, so the final description uses example wording. <a href="{% url 'listing_notes' %}">Add the listing notes</a>.</span></div>
 {% endif %}
 <div class="two-col">
   <aside class="stack" style="gap:14px">

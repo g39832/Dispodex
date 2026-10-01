@@ -19,6 +19,7 @@ urlpatterns = [
     path("board/", pages.board, name="board"),
     path("archive/", archive_views.archive_list, name="archive"),
     path("scripts/", pages.script_builder, name="scripts"),
+    path("scripts/listing-notes/", pages.listing_notes, name="listing_notes"),
     path("listing-images/", pages.listing_images, name="listing_images"),
     path("system/", ops_views.system, name="system"),
     path("imaging/", imaging_views.imaging, name="imaging"),
