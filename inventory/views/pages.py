@@ -8,7 +8,7 @@ from django.utils import timezone
 from core.skus import normalize_sku
 from inventory.models import Item, ListingImageLayout, Photo, Status
 from inventory.services import history
-from inventory.services.scripts import final_boilerplate
+from inventory.services.scripts import using_example_boilerplate
 
 MOBILE_UA_MARKERS = ("android", "iphone", "ipad", "ipod", "mobile", "opera mini", "iemobile", "silk", "blackberry", "windows phone")
 
@@ -37,7 +37,7 @@ def script_builder(request):
     return render(
         request,
         "inventory/scripts.html",
-        {"page": "scripts", "sku": sku, "recent_skus": recent_skus(), "boilerplate": final_boilerplate()},
+        {"page": "scripts", "sku": sku, "recent_skus": recent_skus(), "example_boilerplate": using_example_boilerplate()},
     )
 
 

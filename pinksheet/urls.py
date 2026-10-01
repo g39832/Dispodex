@@ -63,6 +63,7 @@ urlpatterns = [
     path("api/photos/<int:photo_id>/delete/", api.photo_delete, name="api_photo_delete"),
     path("api/photos/<int:photo_id>/thumbnail/", api.photo_set_thumbnail, name="api_photo_thumbnail"),
     path("api/scripts/<str:sku>/", api.script, name="api_script"),
+    path("api/script-build/", api.script_build, name="api_script_build"),
     path("api/labels/zpl/", api.label_zpl, name="api_label_zpl"),
     path("api/ebay-categories/", api.ebay_category_list, name="api_ebay_categories"),
     path("api/listing-images/upload/", api.listing_image_upload, name="api_listing_upload"),

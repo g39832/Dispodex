@@ -261,6 +261,11 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .kv dt { min-width: 0; }
 
+/* Script builder: the eBay title with its copy button */
+.script-title-row { display: flex; gap: 8px; align-items: center; }
+.script-title-row .input { flex: 1; min-width: 0; font-weight: 600; }
+.err-text { color: var(--red); }
+
 /* Report a bug */
 .bug-report { max-width: 640px; display: grid; gap: 14px; }
 

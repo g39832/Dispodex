@@ -259,6 +259,13 @@ def script(request, sku):
     return json_ok(saved_at=timezone.localtime(cache.updated_at).strftime("%H:%M:%S"), state=cache.state)
 
 
+@require_POST
+def script_build(request):
+    """Turn a pasted ChatGPT answer into the eBay title, final description and notes for staff."""
+    body = read_json_body(request)
+    return json_ok(**scripts.build_listing(str(body.get("chatgpt_text") or "")))
+
+
 # ── labels & categories ──────────────────────────────────────────────────────
 @require_GET
 def label_zpl(request):

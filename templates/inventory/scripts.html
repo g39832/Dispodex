@@ -2,7 +2,6 @@
 {% load static ui %}
 {% block title %}Script builder{% endblock %}
 {% block content %}
-{{ boilerplate|json_script:"final-boilerplate" }}
 <div class="page-head">
   <div>
     <nav class="crumbs"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>eBay script builder</span></nav>
@@ -14,6 +13,9 @@
   </div>
 </div>
 
+{% if example_boilerplate %}
+<div class="callout warn">{% icon "alert" %}<span>The shop's listing notes file wasn't found on this server, so the final description uses example wording. Put the notes in <code>data/ebay_boilerplate.txt</code> (plain text) and reload.</span></div>
+{% endif %}
 <div class="two-col">
   <aside class="stack" style="gap:14px">
     <form class="panel panel-pad stack" id="script-form" autocomplete="off">
@@ -48,7 +50,7 @@
         <span class="step-title"><span class="step-num">2</span> Paste ChatGPT's answer</span>
         <button type="button" class="btn btn-sm btn-ghost" id="clear-answer">Clear</button>
       </div>
-      <textarea class="input editor" id="chatgpt-text" spellcheck="false" placeholder="Paste the title, description and item specifics from ChatGPT here."></textarea>
+      <textarea class="input editor" id="chatgpt-text" spellcheck="false" placeholder="Paste ChatGPT's whole answer here. The title, description and item specifics are picked out of it."></textarea>
     </div>
     <div class="step">
       <div class="step-head">
@@ -58,8 +60,15 @@
           <button type="button" class="btn btn-sm btn-primary" id="copy-final">{% icon "copy" %} Copy final</button>
         </span>
       </div>
-      <textarea class="input editor" id="final-text" spellcheck="false" style="min-height:320px" placeholder="Our standard listing notes plus ChatGPT's answer appear here."></textarea>
-      <p class="hint">Everything saves automatically for this SKU.</p>
+      <label class="field-label" for="final-title">eBay title <span class="faint" id="title-count"></span></label>
+      <div class="script-title-row">
+        <input class="input" id="final-title" readonly placeholder="Picked out of ChatGPT's answer">
+        <button type="button" class="btn btn-sm" id="copy-title">{% icon "copy" %} Copy title</button>
+      </div>
+      <label class="field-label" for="final-text" style="margin-top:12px;display:block">Description</label>
+      <textarea class="input editor" id="final-text" spellcheck="false" style="min-height:320px" placeholder="Our standard listing notes, then ChatGPT's description and item specifics, appear here."></textarea>
+      <div class="callout info" id="staff-notes-box" hidden>{% icon "info" %}<div><strong>Notes for staff</strong> <span class="faint">(not in the listing)</span><div id="staff-notes" style="white-space:pre-wrap;margin-top:4px"></div></div></div>
+      <p class="hint">Everything saves automatically for this SKU. You can edit the description; pasting a new answer rebuilds it.</p>
     </div>
   </div>
 </div>
