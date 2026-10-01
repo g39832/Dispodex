@@ -60,8 +60,23 @@ def _open_image(source) -> Image.Image:
     return image
 
 
-def store_image(source, dest_dir: Path) -> StoredImage:
-    """Decode an upload, fix phone rotation, shrink it and write it into ``dest_dir``.
+def min_width() -> int:
+    """eBay rejects listing photos narrower than 500px, so SKU photos are never stored narrower."""
+    return settings.PINKSHEET["PHOTO_MIN_WIDTH"]
+
+
+def widen(image: Image.Image, width: int) -> Image.Image:
+    """Enlarge an image narrower than ``width`` to that width, keeping its shape.
+
+    This adds no detail (a retake is still better), but it meets eBay's minimum size.
+    """
+    if not width or image.width >= width:
+        return image
+    return image.resize((width, max(1, round(image.height * width / image.width))), Image.Resampling.LANCZOS)
+
+
+def store_image(source, dest_dir: Path, *, widen_to: int = 0) -> StoredImage:
+    """Decode an upload, fix phone rotation, shrink (or widen) it and write it into ``dest_dir``.
 
     Decoding every upload with Pillow (instead of trusting the file name or
     browser MIME type) is what stops non-images from being stored.
@@ -76,10 +91,14 @@ def store_image(source, dest_dir: Path) -> StoredImage:
     max_dim = config["PHOTO_MAX_DIMENSION"]
     if max(image.size) > max_dim:
         image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+    image = widen(image, widen_to)
+    return _save_image(image, dest_dir, source_format, convert_to_png=config["PHOTO_CONVERT_TO_PNG"])
 
+
+def _save_image(image: Image.Image, dest_dir: Path, source_format: str, *, convert_to_png: bool) -> StoredImage:
     dest_dir.mkdir(parents=True, exist_ok=True)
     token = secrets.token_hex(16)
-    if config["PHOTO_CONVERT_TO_PNG"] or source_format == "PNG":
+    if convert_to_png or source_format == "PNG":
         name, mime = f"{token}.png", "image/png"
         target = dest_dir / name
         image.save(target, "PNG", optimize=True)
@@ -109,7 +128,7 @@ def save_sku_photo(sku: str, upload, original_name: str | None = None) -> Photo:
         limit_mb = settings.PINKSHEET["PHOTO_MAX_BYTES"] // (1024 * 1024)
         raise PhotoError(f"{display_name} is larger than the {limit_mb} MB limit.")
     try:
-        stored = store_image(upload, photo_root() / sku_directory(sku_norm))
+        stored = store_image(upload, photo_root() / sku_directory(sku_norm), widen_to=min_width())
     except PhotoError as exc:
         raise PhotoError(f"{display_name} {exc}".strip()) from exc
 
@@ -125,6 +144,67 @@ def save_sku_photo(sku: str, upload, original_name: str | None = None) -> Photo:
         )
         history.record_photo(sku_norm, ItemEvent.Action.PHOTO_ADDED)
         return photo
+
+
+def _upright_width(image: Image.Image) -> int:
+    """Width as shown, from the file header alone (EXIF orientations 5-8 turn the image sideways)."""
+    return image.height if image.getexif().get(0x0112, 1) in (5, 6, 7, 8) else image.width
+
+
+def widen_file(path: Path, width: int | None = None) -> StoredImage | None:
+    """Write a widened copy of a stored photo next to it, in the same format.
+
+    Returns the new file's details, or None when it is already wide enough. The
+    original is left untouched.
+    """
+    width = min_width() if width is None else width
+    with Image.open(path) as image:
+        if not width or _upright_width(image) >= width:
+            return None
+        image.load()
+        source_format = image.format
+        upright = ImageOps.exif_transpose(image)
+        if upright.mode not in ("RGB", "RGBA", "L", "LA"):
+            upright = upright.convert("RGBA" if "transparency" in upright.info else "RGB")
+        return _save_image(widen(upright, width), path.parent, source_format, convert_to_png=False)
+
+
+@dataclass
+class WidenResult:
+    widened: int = 0
+    failed: int = 0
+
+
+def widen_small_photos(progress=None) -> WidenResult:
+    """Point every SKU photo narrower than the minimum (the old app's 320px previews) at a widened copy.
+
+    The small original stays where it is, so restoring an older database backup still finds its
+    photos (they are simply widened again on the next start). Photos already wide enough are only
+    checked from their file header, so this is quick to run on every start.
+    """
+    result = WidenResult()
+    width = min_width()
+    if not width:
+        return result
+    for photo in Photo.objects.order_by("id").iterator():
+        path = photo_path(photo)
+        if not path.exists():
+            continue
+        try:
+            stored = widen_file(path, width)
+        except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
+            logger.warning("Could not widen photo %s (%s)", photo.pk, path)
+            result.failed += 1
+            continue
+        if stored is None:
+            continue
+        Photo.objects.filter(pk=photo.pk).update(
+            stored_name=stored.stored_name, mime_type=stored.mime_type, file_size=stored.file_size,
+        )
+        result.widened += 1
+        if progress and result.widened % 250 == 0:
+            progress(result.widened)
+    return result
 
 
 def delete_photo(photo: Photo) -> None:

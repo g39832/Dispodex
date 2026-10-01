@@ -33,6 +33,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.utils import timezone
 
 from inventory.models import Item
+from inventory.services import photos as photo_service
 from operations import backups, excel_import, sheet_import
 from operations.legacy_import import run_import
 from operations.models import SystemState
@@ -189,6 +190,9 @@ def import_database(path: Path, *, original_name: str, actor: str) -> ImportOutc
             items, messages = _import_sqlite(kind, path, original_name, safety.path)
 
         messages.append(f"The data from before the import is saved as {safety.path.name}.")
+        widened = photo_service.widen_small_photos().widened
+        if widened:
+            messages.append(f"{widened} photo(s) narrower than {photo_service.min_width()}px were widened for eBay.")
         SystemState.set(LAST_IMPORT_KEY, f"{original_name} · {actor} · {timezone.localtime():%b %d, %Y %I:%M %p}")
         logger.info("Import by %s from %s (%s, %s items); previous data backed up as %s",
                     actor, original_name, kind, items, safety.path.name)

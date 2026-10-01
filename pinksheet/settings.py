@@ -190,6 +190,8 @@ PINKSHEET = {
     # Photos
     "PHOTO_MAX_BYTES": env_int("PINKSHEET_PHOTO_MAX_MB", 32) * 1024 * 1024,
     "PHOTO_MAX_DIMENSION": env_int("PINKSHEET_PHOTO_MAX_DIMENSION", 1200),
+    # eBay rejects photos narrower than 500px; narrower SKU photos are enlarged to this width. 0 = off.
+    "PHOTO_MIN_WIDTH": env_int("PINKSHEET_PHOTO_MIN_WIDTH", 500),
     "PHOTO_CONVERT_TO_PNG": env_bool("PINKSHEET_PHOTO_CONVERT_TO_PNG", True),
     # Backups
     "BACKUP_MIRROR_DIR": env("BACKUP_MIRROR_DIR", ""),

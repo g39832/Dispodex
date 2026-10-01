@@ -3,6 +3,7 @@ import logging
 import os
 import signal
 import socket
+import threading
 
 from django.conf import settings
 from django.core.management import call_command
@@ -70,6 +71,25 @@ class Command(BaseCommand):
             raise CommandError(f"Database update found, but the safety backup failed: {result.error}. Nothing was changed.")
         self.stdout.write("Database update found: backed up first. " + "; ".join(result.messages))
 
+    def _widen_small_photos_in_background(self) -> None:
+        """Photos narrower than eBay's 500px minimum (the old app's previews) get a widened copy.
+
+        The first time takes a few minutes for thousands of photos, so it runs while the app is
+        already serving; after that it only reads file headers and finishes in seconds.
+        """
+        from inventory.services import photos
+
+        def run():
+            try:
+                result = photos.widen_small_photos()
+            except Exception:
+                logger.exception("Widening small photos failed")
+                return
+            if result.widened:
+                logger.info("Widened %s small photo(s) to %spx for eBay.", result.widened, photos.min_width())
+
+        threading.Thread(target=run, name="widen-photos", daemon=True).start()
+
     def handle(self, *args, **options):
         from waitress import serve
 
@@ -98,6 +118,8 @@ class Command(BaseCommand):
         if settings.PINKSHEET["WORKER_ENABLED"] and not options["no_worker"]:
             worker = Worker()
             worker.start()
+        if not options["skip_setup"]:
+            self._widen_small_photos_in_background()
 
         port = options["port"]
         _handle_stop_signals()

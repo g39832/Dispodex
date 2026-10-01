@@ -31,6 +31,33 @@ def test_big_photos_are_shrunk(client, image):
         assert max(stored.size) == 1200
 
 
+def test_narrow_photos_are_widened_for_ebay(client, image):
+    upload(client, "SKU-1", image(size=(240, 320)))
+    upload(client, "SKU-1", image(size=(800, 600)))
+    narrow, wide = Photo.objects.order_by("id")
+    with Image.open(photo_service.photo_path(narrow)) as stored:
+        assert stored.size == (500, 667)
+    with Image.open(photo_service.photo_path(wide)) as stored:
+        assert stored.size == (800, 600)
+
+
+def test_existing_small_photos_are_widened_and_originals_kept(settings, image):
+    small = photo_service.save_sku_photo("SKU-1", image(size=(320, 240)))
+    settings.PINKSHEET = {**settings.PINKSHEET, "PHOTO_MIN_WIDTH": 0}
+    tiny = photo_service.save_sku_photo("SKU-1", image("JPEG", size=(100, 50)))
+    settings.PINKSHEET = {**settings.PINKSHEET, "PHOTO_MIN_WIDTH": 500}
+    original = photo_service.photo_path(tiny)
+    assert photo_service.photo_path(small) != original
+
+    result = photo_service.widen_small_photos()
+    assert result.widened == 1 and result.failed == 0
+    tiny.refresh_from_db()
+    with Image.open(photo_service.photo_path(tiny)) as stored:
+        assert stored.size == (500, 250)
+    assert original.exists()  # an older database backup still finds its photo
+    assert photo_service.widen_small_photos().widened == 0  # already done
+
+
 def test_non_images_are_rejected(client):
     fake = SimpleUploadedFile("evil.jpg", b"<?php echo 'hi'; ?>", content_type="image/jpeg")
     response = upload(client, "SKU-1", fake)

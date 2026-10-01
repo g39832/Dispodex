@@ -2,6 +2,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
+from inventory.services import photos as photo_service
 from operations import backups, excel_import
 
 
@@ -59,3 +60,6 @@ class Command(BaseCommand):
             raise CommandError(f"{len(problems)} difference(s) found. Restore the backup above with "
                                "'manage.py restore_backup --latest' if needed.")
         self.stdout.write(self.style.SUCCESS("Verified: every item and every photo matches the file."))
+        widened = photo_service.widen_small_photos().widened
+        if widened:
+            self.stdout.write(f"Widened {widened} small photo(s) to {photo_service.min_width()}px for eBay.")

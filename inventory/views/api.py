@@ -315,7 +315,7 @@ def listing_image_upload(request):
         return json_error(f"{upload.name} is too large.")
     folder = Path(settings.MEDIA_ROOT) / "ebay_images" / sku_directory(sku)
     try:
-        stored = photo_service.store_image(upload, folder)
+        stored = photo_service.store_image(upload, folder, widen_to=photo_service.min_width())
     except photo_service.PhotoError as exc:
         return json_error(f"{upload.name} {exc}")
     return json_ok(

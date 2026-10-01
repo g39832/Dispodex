@@ -10,6 +10,7 @@ from PIL import Image
 
 from archive.models import ArchiveItem
 from inventory.models import Item, ItemEvent, Photo
+from inventory.services import photos as photo_service
 from operations import excel_import
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -98,10 +99,14 @@ def test_preview_reports_everything_without_writing(export):
     assert not Item.objects.exists()
 
 
-def test_import_keeps_every_value_and_verifies(export):
+def test_import_keeps_every_value_and_verifies(export, capsys):
     ArchiveItem.objects.create(sku="OLD-1", sku_normalized="OLD-1", title="Kept")
     Item.objects.create(sku="TEST-9", what_is_it="test item")
     call_command("import_excel_export", str(export), "--replace", "--yes")
+    out = capsys.readouterr().out
+    # Checked against the file first, then the small previews are widened for eBay.
+    assert "Verified: every item and every photo matches the file." in out
+    assert out.index("Verified") < out.index("Widened 3 small photo(s) to 500px")
 
     assert set(Item.objects.values_list("sku_normalized", flat=True)) == {"LAP-1", "LAP-2", "LAP-3", "LAP-4"}
     assert ArchiveItem.objects.count() == 1  # the Archive is never replaced
@@ -122,7 +127,9 @@ def test_import_keeps_every_value_and_verifies(export):
     photos = list(Photo.objects.filter(sku_normalized="LAP-1").order_by("sort_order"))
     assert len(photos) == 2 and photos[0].is_thumb and not photos[1].is_thumb and all(p.low_res for p in photos)
     assert ItemEvent.objects.filter(action="created").count() == 4
-    assert excel_import.verify(export) == []
+    for photo in Photo.objects.all():
+        with Image.open(photo_service.photo_path(photo)) as image:
+            assert image.width == 500
 
 
 def test_refuses_to_mix_without_replace(export):
