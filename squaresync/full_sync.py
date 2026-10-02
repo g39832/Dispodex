@@ -13,6 +13,7 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 from inventory.models import Item
+from squaresync import queue as square_queue
 from squaresync import sync as square_sync
 
 logger = logging.getLogger("pinksheet.square")
@@ -57,6 +58,9 @@ def _run(skus: list[str], config) -> None:
                 logger.exception("Full Square sync failed on %s", sku)
                 status, message = "error", f"Unexpected error: {exc}"
             key = "updated" if status == "ok" else ("skipped" if status in ("skipped", "disabled") else "error")
+            if key == "error":
+                # Hand it to the queue so a network blip (DNS, Wi-Fi) heals itself with backoff.
+                square_queue.enqueue(sku)
             with _guard:
                 _state["done"] += 1
                 _state[key] += 1

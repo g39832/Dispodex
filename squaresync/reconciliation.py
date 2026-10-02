@@ -172,6 +172,8 @@ def repair(issue: ReconciliationIssue, client: SquareClient | None) -> tuple[str
     action, sku = issue.repair_action, issue.sku_normalized
     if action in ("catalog_upsert", "full_sync"):
         result = square_sync.sync_item(sku, client=client)
+        if not result.succeeded:
+            square_queue.enqueue(sku)  # the worker keeps retrying with backoff
         return ("auto_repaired" if result.succeeded else "failed", f"{result.message} for {sku}")
     if action == "mark_sold":
         if not Sale.objects.filter(sku_normalized=sku).exists():

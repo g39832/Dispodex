@@ -360,3 +360,37 @@ def test_full_sync_runs_in_background_and_reports_progress(client, square_settin
 
 def test_full_sync_progress_before_any_sync(client):
     assert client.get(reverse("api_square_sync_progress")).json()["running"] is False
+
+
+def dns_failure():
+    import requests
+
+    return requests.exceptions.ConnectionError("Failed to resolve 'connect.squareup.com' ([Errno -3] Temporary failure in name resolution)")
+
+
+@responses.activate
+def test_full_sync_failure_is_queued_and_heals_itself(client, square_settings, item):
+    """A DNS blip during "Sync Square now" must not leave the SKU stuck until someone clicks again."""
+    from squaresync import full_sync
+
+    responses.post(f"{BASE}/v2/catalog/search-catalog-items", json={"items": []})
+    responses.post(f"{BASE}/v2/catalog/object", body=dns_failure())
+    client.post(reverse("api_square_sync_all"))
+    full_sync.wait(10)
+    assert "name resolution" in CatalogSync.objects.get(sku_normalized="ABC-1").last_error
+    job = SyncJob.objects.get(sku_normalized="ABC-1")
+    assert job.status == SyncJob.State.QUEUED
+
+    responses.reset()
+    mock_happy_sync()
+    assert processor.process_queue()["ok"] == 1
+    assert CatalogSync.objects.get(sku_normalized="ABC-1").last_error == ""
+    assert client.get(reverse("api_square_status")).json()["last_error"] is None
+
+
+def test_failed_reconciliation_repair_is_queued(item, monkeypatch):
+    monkeypatch.setattr(square_sync, "sync_item", lambda sku, client=None: square_sync.SyncResult("error", "DNS down"))
+    issue = type("Issue", (), {"repair_action": "full_sync", "sku_normalized": "ABC-1"})()
+    status, _ = reconciliation.repair(issue, None)
+    assert status == "failed"
+    assert SyncJob.objects.get(sku_normalized="ABC-1").status == SyncJob.State.QUEUED
