@@ -394,3 +394,51 @@ def test_failed_reconciliation_repair_is_queued(item, monkeypatch):
     status, _ = reconciliation.repair(issue, None)
     assert status == "failed"
     assert SyncJob.objects.get(sku_normalized="ABC-1").status == SyncJob.State.QUEUED
+
+
+# ── deleting an item takes it off Square; undo puts it back ─────────────────
+def last_inventory_quantity():
+    body = json.loads([c for c in responses.calls if c.request.url.endswith("/inventory/batch-change")][-1].request.body)
+    return body["changes"][0]["physical_count"]["quantity"]
+
+
+@responses.activate
+def test_delete_zeroes_square_stock_and_undo_restores_it(square_settings, item):
+    from inventory.services import items as item_service
+
+    mock_happy_sync()
+    assert square_sync.sync_item(item.sku).status == "ok"
+    responses.post(f"{BASE}/v2/inventory/batch-change", json={"counts": []})
+
+    item_service.soft_delete(item.pk)
+    job = SyncJob.objects.get(sku_normalized="ABC-1", operation=SyncJob.Operation.INVENTORY_SET)
+    assert job.status == SyncJob.State.QUEUED
+    assert processor.process_queue()["ok"] == 1
+    assert last_inventory_quantity() == "0"
+    assert CatalogSync.objects.get(sku_normalized="ABC-1").last_synced_quantity == 0
+
+    item_service.undo_last_delete()
+    assert processor.process_queue()["ok"] == 1
+    assert last_inventory_quantity() == "1"
+    assert CatalogSync.objects.get(sku_normalized="ABC-1").last_synced_quantity == 1
+
+
+@responses.activate
+def test_recreated_sku_after_delete_gets_a_full_push(square_settings, item):
+    from inventory.services import items as item_service
+
+    mock_happy_sync()
+    square_sync.sync_item(item.sku)
+    responses.post(f"{BASE}/v2/inventory/batch-change", json={"counts": []})
+    item_service.soft_delete(item.pk)
+    processor.process_queue()
+    Item.objects.create(sku="ABC-1", what_is_it="Laptop", brand_model="Dell 5590", price="120.00")
+    assert square_sync.sync_item("ABC-1").status == "ok"  # not "skipped": Square's stock is 0
+    assert last_inventory_quantity() == "1"
+
+
+def test_deleting_a_never_synced_item_is_harmless(square_settings, item):
+    from inventory.services import items as item_service
+
+    item_service.soft_delete(item.pk)
+    assert processor.process_queue()["failed"] == 0

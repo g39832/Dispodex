@@ -262,7 +262,7 @@ def upload_image(client: SquareClient, item_id: str, sku: str, photo: Photo) -> 
 
 
 def target_quantity(item: Item, config: SquareConfig) -> int:
-    if item.status == Status.SOLD:
+    if item.status == Status.SOLD or item.deleted_at:
         return 0
     return item.quantity if item.quantity > 0 else config.default_quantity
 
@@ -411,7 +411,9 @@ def push_inventory(sku: str, client: SquareClient | None = None, config: SquareC
         return SyncResult("disabled", "Square sync is not configured")
     sku = normalize_sku(sku)
     mapping = CatalogSync.objects.filter(sku_normalized=sku).first()
-    item = Item.objects.filter(sku_normalized=sku).first()
+    # A deleted item still gets a push, so Square's stock drops to 0 and it can't be rung up.
+    item = (Item.objects.filter(sku_normalized=sku).first()
+            or Item.all_objects.filter(sku_normalized=sku).order_by("-deleted_at").first())
     if not mapping or not mapping.square_variation_id:
         # Never pushed before — do a full sync instead.
         return sync_item(sku, client=client, config=config)
@@ -425,7 +427,10 @@ def push_inventory(sku: str, client: SquareClient | None = None, config: SquareC
         return SyncResult("error", str(exc))
     mapping.last_inventory_sync_at = timezone.now()
     mapping.last_synced_quantity = quantity
-    mapping.save(update_fields=["last_inventory_sync_at", "last_synced_quantity"])
+    if item.deleted_at:
+        # Square no longer matches the saved details, so a re-created SKU gets a full push.
+        mapping.payload_hash = ""
+    mapping.save(update_fields=["last_inventory_sync_at", "last_synced_quantity", "payload_hash"])
     return SyncResult("ok", f"Inventory set for {sku}")
 
 

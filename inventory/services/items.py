@@ -13,6 +13,7 @@ from inventory.models import IntakeDraft, Item, ItemEvent, Review
 from inventory.services import history
 from inventory.services import photos as photo_service
 from squaresync import queue as square_queue
+from squaresync.models import SyncJob
 
 logger = logging.getLogger("pinksheet")
 
@@ -170,6 +171,7 @@ def soft_delete(item_id: int) -> Item:
     item.deleted_at = timezone.now()
     item.save(update_fields=["deleted_at"], touch=False)
     history.record(item, ItemEvent.Action.DELETED)
+    transaction.on_commit(lambda: square_queue.enqueue(item.sku_normalized, SyncJob.Operation.INVENTORY_SET))
     logger.info("Deleted item %s (%s)", item.pk, item.sku_normalized)
     return item
 
@@ -184,6 +186,7 @@ def undo_last_delete() -> Item:
     item.deleted_at = None
     item.save(update_fields=["deleted_at"])
     history.record(item, ItemEvent.Action.RESTORED)
+    transaction.on_commit(lambda: square_queue.enqueue(item.sku_normalized, SyncJob.Operation.INVENTORY_SET))
     logger.info("Restored item %s (%s)", item.pk, item.sku_normalized)
     return item
 
