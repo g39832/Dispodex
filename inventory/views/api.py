@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from functools import wraps
 from pathlib import Path
 
@@ -348,13 +349,19 @@ def listing_image_layout(request, sku):
     for entry in positions[:200]:
         if not isinstance(entry, dict):
             continue
+        try:
+            x, y = float(entry.get("x") or 0), float(entry.get("y") or 0)
+        except (TypeError, ValueError):
+            return json_error("Positions must be numbers.")
+        if not (math.isfinite(x) and math.isfinite(y)):
+            return json_error("Positions must be numbers.")
         clean.append(
             {
                 "id": entry.get("id"),
                 "src": str(entry.get("src") or "")[:2048],
                 "name": str(entry.get("name") or "")[:255],
-                "x": float(entry.get("x") or 0),
-                "y": float(entry.get("y") or 0),
+                "x": x,
+                "y": y,
             }
         )
     with transaction.atomic():

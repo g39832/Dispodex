@@ -15,6 +15,7 @@ from django.utils.dateparse import parse_date
 
 from archive.models import ArchiveItem
 from core.skus import normalize_sku
+from inventory.services.exports import spreadsheet_safe
 
 PAGE_SIZE = 50
 
@@ -126,13 +127,13 @@ def archive_csv(request):
         return timezone.localtime(value).strftime("%Y-%m-%d %H:%M:%S") if value else ""
 
     for row in rows:
-        writer.writerow([
+        writer.writerow([spreadsheet_safe(value) for value in [
             row.sku, row.title, row.status, row.sold_at.isoformat() if row.sold_at else "",
             "" if row.sold_price is None else f"{row.sold_price:.2f}",
             "" if row.purchase_price is None else f"{row.purchase_price:.2f}",
             row.source, row.buyer, row.legacy_source, row.legacy_table, row.legacy_id, row.notes,
             stamp(row.created_at), stamp(row.updated_at),
-        ])
+        ]])
     response = HttpResponse(buffer.getvalue(), content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="archive_{timezone.localdate():%Y-%m-%d}.csv"'
     return response

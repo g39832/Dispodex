@@ -86,6 +86,17 @@ PARTNER_COLUMNS = [
 heavy_export_lock = threading.Lock()
 
 
+# Text starting with these is run as a formula by Excel, LibreOffice and Google Sheets.
+FORMULA_STARTS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def spreadsheet_safe(value):
+    """Keep typed text like "=HYPERLINK(...)" as plain text when the export is opened in a spreadsheet."""
+    if isinstance(value, str) and value.startswith(FORMULA_STARTS):
+        return "'" + value
+    return value
+
+
 def cell_value(item: Item, field: str, for_sheet: bool = False):
     value = getattr(item, field)
     if field == "status":
@@ -118,7 +129,7 @@ def inventory_csv(items, columns=EXPORT_COLUMNS) -> str:
     writer = csv.writer(buffer, lineterminator="\r\n")
     writer.writerow([header for _, header in columns])
     for item in items:
-        writer.writerow([cell_value(item, field) for field, _ in columns])
+        writer.writerow([spreadsheet_safe(cell_value(item, field)) for field, _ in columns])
     return buffer.getvalue()
 
 
@@ -203,7 +214,7 @@ def inventory_xlsx(items: list[Item], columns=EXPORT_COLUMNS):
     photos = _photos_by_sku(items)
     thumb_height = 96
     for row_index, item in enumerate(items, start=2):
-        sheet.append([cell_value(item, field, for_sheet=True) for field in fields] + [""])
+        sheet.append([spreadsheet_safe(cell_value(item, field, for_sheet=True)) for field in fields] + [""])
         if "price" in fields:
             sheet.cell(row=row_index, column=fields.index("price") + 1).number_format = '"$"#,##0.00'
         total_height, placed = 0, 0
@@ -257,7 +268,7 @@ def sortable_xlsx(items: list[Item], columns):
         cell.font = Font(bold=True)
         cell.fill = PatternFill("solid", fgColor="E7F0FA")
     for item in items:
-        sheet.append([cell_value(item, field, for_sheet=True) for field in fields])
+        sheet.append([spreadsheet_safe(cell_value(item, field, for_sheet=True)) for field in fields])
     if "price" in fields:
         letter = get_column_letter(fields.index("price") + 1)
         for cell in sheet[letter][1:]:

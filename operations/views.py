@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -205,7 +205,10 @@ def legacy_redirect(request, page: str):
         if not sku:
             raise Http404("Missing SKU")
         name = "card" if page == "card.php" else "mobile_card"
-        return HttpResponsePermanentRedirect(reverse(name, args=[sku]))
+        try:
+            return HttpResponsePermanentRedirect(reverse(name, args=[sku]))
+        except NoReverseMatch:  # a "/" can't be part of a SKU address
+            raise Http404("Unknown SKU") from None
     if page == "photo.php":
         photo_id = params.get("id", "")
         if not photo_id.isdigit():
