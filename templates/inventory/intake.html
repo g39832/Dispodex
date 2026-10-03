@@ -246,6 +246,7 @@
         <div class="panel-head"><span class="panel-title">{% icon "bolt" %} Tools</span></div>
         <div class="panel-body stack">
           <button type="button" class="btn btn-sm" id="print-sheet-btn">{% icon "printer" %} Print sheet</button>
+          <button type="button" class="btn btn-sm" id="print-ebay-btn">{% icon "printer" %} Print eBay sheet</button>
           <label class="check" style="padding:0"><input type="checkbox" id="print-pink"> Print on pink</label>
           <button type="button" class="btn btn-sm" id="print-sticker" data-label-preset="compact">{% icon "tag" %} Print sticker (Zebra)</button>
           <a class="btn btn-sm" id="open-script" href="{% url 'scripts' %}?sku={{ active_sku|urlencode }}">{% icon "script" %} eBay script builder</a>
@@ -272,11 +273,12 @@
     <div class="print-thumb">{% if print_thumb %}<img src="{% url 'photo' print_thumb.id %}" alt="">{% endif %}</div>
     <div class="print-ident">
       <div class="print-sku" data-print="sku"></div>
-      <div class="print-line"><b>Status</b> <span data-print="status"></span> <span class="print-pill" id="print-review" data-reviewed="{{ item.reviewed|default:0 }}"></span></div>
-      <div class="print-line"><b>Price</b> <span data-print="price"></span> &nbsp; <b>Qty</b> <span data-print="quantity"></span></div>
+      <div class="print-line print-status"><b>Status</b> <span data-print="status"></span> <span class="print-pill" id="print-review" data-reviewed="{{ item.reviewed|default:0 }}"></span></div>
+      <div class="print-line"><span class="print-price"><b>Price</b> <span data-print="price"></span> &nbsp; </span><b>Qty</b> <span data-print="quantity"></span></div>
       <div class="print-line"><b>What is it?</b> <span data-print="what_is_it"></span></div>
     </div>
     <div class="print-qr" id="print-qr"></div>
+    <div class="print-logo">{% if print_logo %}<img src="{% url 'print_logo' %}" alt="">{% endif %}</div>
   </div>
   <div class="print-cols">
     <div class="print-box">

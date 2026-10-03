@@ -27,6 +27,11 @@
   .print-pill { border: 1px solid #111; border-radius: 3px; padding: 0 5px; font-size: 8.5pt; font-weight: 700; margin-left: 6px; }
   .print-qr { width: 1.2in; height: 1.2in; justify-self: end; background: #fff; }
   .print-qr img, .print-qr canvas { width: 100%; height: 100%; }
+  /* eBay sheet: no status or price, the shop logo in place of the QR code */
+  .print-logo { display: none; width: 1.2in; height: 1.2in; justify-self: end; }
+  .print-logo img { width: 100%; height: 100%; object-fit: contain; }
+  body.print-ebay .print-qr, body.print-ebay .print-status, body.print-ebay .print-price { display: none; }
+  body.print-ebay .print-logo { display: block; }
   .print-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.15in; margin-top: 0.12in; }
   .print-box { border: 1px solid #999; border-radius: 4px; padding: 0.08in 0.12in; margin-top: 0.12in; break-inside: avoid; background: #fff; }
   .print-cols .print-box { margin-top: 0; }

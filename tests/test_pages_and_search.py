@@ -373,3 +373,36 @@ def test_only_staff_can_change_listing_notes(client, settings, tmp_path, django_
     assert "Only staff can change" in html and "Original notes" in html and "<textarea" not in html
     client.post(reverse("listing_notes"), {"text": "Hijacked"})
     assert notes_file.read_text(encoding="utf-8") == "Original notes\n"
+
+
+# ── eBay print sheet ─────────────────────────────────────────────────────────
+LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
+
+
+def test_intake_tools_offer_the_ebay_sheet_with_the_shop_logo(client, settings, tmp_path, stock):
+    logo = tmp_path / "print_logo.svg"
+    logo.write_text(LOGO)
+    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_FILE": logo}
+    html = client.get(reverse("intake") + "?sku=LAP-1").content.decode()
+    assert 'id="print-ebay-btn"' in html and "Print eBay sheet" in html
+    assert f'<div class="print-logo"><img src="{reverse("print_logo")}"' in html
+    # The parts the eBay sheet hides are marked so print.css can hide them.
+    assert 'class="print-line print-status"' in html and 'class="print-price"' in html
+    response = client.get(reverse("print_logo"))
+    assert response.status_code == 200 and response["Content-Type"] == "image/svg+xml"
+    assert "sandbox" in response["Content-Security-Policy"]
+    assert b"".join(response.streaming_content).decode() == LOGO
+
+
+def test_ebay_sheet_without_a_logo_file_shows_no_broken_image(client, settings, tmp_path, stock):
+    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_FILE": tmp_path / "missing.svg"}
+    html = client.get(reverse("intake") + "?sku=LAP-1").content.decode()
+    assert '<div class="print-logo"></div>' in html
+    assert client.get(reverse("print_logo")).status_code == 404
+
+
+def test_print_logo_refuses_files_that_are_not_images(client, settings, tmp_path):
+    other = tmp_path / "secret.txt"
+    other.write_text("not a logo")
+    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_FILE": other}
+    assert client.get(reverse("print_logo")).status_code == 404

@@ -57,6 +57,18 @@ def serve_photo(request, photo_id: int):
 
 
 @require_GET
+def serve_print_logo(request):
+    """The shop's logo for the printed eBay sheet. It lives in data/, outside the code."""
+    path = settings.PINKSHEET["PRINT_LOGO_FILE"]
+    content_type = mimetypes.guess_type(path.name)[0] or ""
+    if not path.is_file() or content_type not in ("image/svg+xml", "image/png", "image/jpeg"):
+        raise Http404("No print logo")
+    response = _cached_file_response(request, path, content_type, max_age=3600)
+    response["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    return response
+
+
+@require_GET
 def serve_listing_image(request, sku: str, filename: str):
     folder = Path(settings.MEDIA_ROOT) / "ebay_images" / sku_directory(normalize_sku(sku))
     path = folder / Path(filename).name

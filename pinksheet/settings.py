@@ -205,6 +205,8 @@ PINKSHEET = {
     "QZ_ALLOWED_ORIGINS": env_list("QZ_ALLOWED_ORIGINS", []),
     # Text placed above every final eBay description (the shop's own policies; kept out of the code).
     "EBAY_BOILERPLATE_FILE": Path(env("EBAY_BOILERPLATE_FILE", str(DATA_DIR / "ebay_boilerplate.txt"))),
+    # The shop's logo for the printed eBay sheet (SVG, PNG or JPG). Missing = no logo on the sheet.
+    "PRINT_LOGO_FILE": Path(env("PINKSHEET_PRINT_LOGO_FILE", str(DATA_DIR / "print_logo.svg"))),
     # eBay taxonomy refresh (optional)
     "EBAY_CLIENT_ID": env("EBAY_CLIENT_ID", ""),
     "EBAY_CLIENT_SECRET": env("EBAY_CLIENT_SECRET", ""),

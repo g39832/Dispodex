@@ -168,6 +168,7 @@ def intake(request):
         "clear_draft": "new" in request.GET,
         "just_saved": "saved" in request.GET,
         "photo_limit_mb": settings.PINKSHEET["PHOTO_MAX_BYTES"] // (1024 * 1024),
+        "print_logo": settings.PINKSHEET["PRINT_LOGO_FILE"].is_file(),
         "intake_config": {
             "sku": active_sku,
             "itemId": item_id_value,

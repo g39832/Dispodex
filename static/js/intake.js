@@ -674,7 +674,7 @@
     var prop = input.closest('.prop');
     return prop ? prop.querySelector('.prop-name').textContent.trim() : input.name;
   }
-  function fillPrintList(target, section) {
+  function fillPrintList(target, section, ebay) {
     var dl = document.querySelector('[data-print-list="' + target + '"]');
     dl.innerHTML = '';
     section.querySelectorAll('.prop').forEach(function (prop) {
@@ -686,6 +686,8 @@
         else if (field.type === 'checkbox') { if (field.checked) values.push(field.parentNode.textContent.trim()); }
         else if (field.value) values.push(field.value);
       });
+      // The eBay sheet goes out with the item: say when the battery was measured.
+      if (ebay && values.length && prop.querySelector('#battery')) values = [values.join(', ') + ' at the time of testing'];
       var dt = document.createElement('dt');
       dt.textContent = name;
       var dd = document.createElement('dd');
@@ -694,9 +696,12 @@
       dl.appendChild(dd);
     });
   }
+  var printMode = '';  // 'ebay' while the eBay sheet is printing
   function preparePrint() {
     var data = formData();
+    var ebay = printMode === 'ebay';
     document.body.classList.toggle('print-pink', pinkBox.checked);
+    document.body.classList.toggle('print-ebay', ebay);
     var set = function (name, value) {
       document.querySelectorAll('[data-print="' + name + '"]').forEach(function (el) { el.textContent = value || '—'; });
     };
@@ -715,8 +720,8 @@
     set('what_is_it', data.what_is_it);
     set('notes', data.notes);
     set('printed_at', new Date().toLocaleString());
-    fillPrintList('d1', document.querySelector('[data-print-section="d1"]'));
-    fillPrintList('d2', document.querySelector('[data-print-section="d2"]'));
+    fillPrintList('d1', document.querySelector('[data-print-section="d1"]'), ebay);
+    fillPrintList('d2', document.querySelector('[data-print-section="d2"]'), ebay);
     var details = document.querySelector('[data-print-list="details"]');
     details.innerHTML = '';
     [['eBay category', data.ebay_category], ['Location', data.where_it_goes], ['Date received', data.date_received], ['Came from', data.source]]
@@ -738,25 +743,29 @@
     });
   }
   window.addEventListener('beforeprint', preparePrint);
-  var printButton = document.getElementById('print-sheet-btn');
-  if (printButton) {
-    printButton.addEventListener('click', function () {
-      preparePrint();
-      var images = Array.prototype.slice.call(document.querySelectorAll('.print-sheet img'));
-      var waiting = images.filter(function (img) { return !img.complete; });
-      var printed = false;
-      var go = function () {
-        if (printed) return;
-        printed = true;
-        setTimeout(function () { window.print(); }, 100);
-      };
-      if (!waiting.length) return go();
-      var left = waiting.length;
-      var done = function () { left -= 1; if (left === 0) go(); };
-      waiting.forEach(function (img) { img.addEventListener('load', done, { once: true }); img.addEventListener('error', done, { once: true }); });
-      setTimeout(go, 2500);
-    });
+  // Ctrl+P after an eBay print gives the normal sheet again.
+  window.addEventListener('afterprint', function () { printMode = ''; document.body.classList.remove('print-ebay'); });
+  function printSheet(mode) {
+    printMode = mode;
+    preparePrint();
+    var images = Array.prototype.slice.call(document.querySelectorAll('.print-sheet img'));
+    var waiting = images.filter(function (img) { return !img.complete; });
+    var printed = false;
+    var go = function () {
+      if (printed) return;
+      printed = true;
+      setTimeout(function () { window.print(); }, 100);
+    };
+    if (!waiting.length) return go();
+    var left = waiting.length;
+    var done = function () { left -= 1; if (left === 0) go(); };
+    waiting.forEach(function (img) { img.addEventListener('load', done, { once: true }); img.addEventListener('error', done, { once: true }); });
+    setTimeout(go, 2500);
   }
+  [['print-sheet-btn', ''], ['print-ebay-btn', 'ebay']].forEach(function (pair) {
+    var button = document.getElementById(pair[0]);
+    if (button) button.addEventListener('click', function () { printSheet(pair[1]); });
+  });
 
   var stickerBtn = document.getElementById('print-sticker');
   stickerBtn.addEventListener('click', function () {
