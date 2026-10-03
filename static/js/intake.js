@@ -686,8 +686,12 @@
         else if (field.type === 'checkbox') { if (field.checked) values.push(field.parentNode.textContent.trim()); }
         else if (field.value) values.push(field.value);
       });
-      // The eBay sheet goes out with the item: say when the battery was measured.
-      if (ebay && values.length && prop.querySelector('#battery')) values = [values.join(', ') + ' at the time of testing'];
+      // The eBay sheet goes out with the item: say when the battery was measured. Not for "N/A",
+      // "None" or "No battery": there was nothing to measure.
+      var noReading = /^(n\/?a|none|no battery|no|-+|—)$/i;
+      if (ebay && values.length && prop.querySelector('#battery') && !noReading.test(values.join(', ').trim())) {
+        values = [values.join(', ') + ' at the time of testing'];
+      }
       var dt = document.createElement('dt');
       dt.textContent = name;
       var dd = document.createElement('dd');
