@@ -36,7 +36,7 @@ def serve_photo(request, photo_id: int):
     photo = get_object_or_404(Photo, pk=photo_id)
     if request.GET.get("thumb") in ("1", "wide"):
         # "wide": the photo grids people save pictures from, at least eBay's 500px minimum.
-        width = photo_service.min_width() if request.GET.get("thumb") == "wide" else 0
+        width = photo_service.GRID_PREVIEW_WIDTH if request.GET.get("thumb") == "wide" else 0
         thumb = photo_service.thumbnail_file(photo, width=width)
         if thumb:
             return _cached_file_response(request, thumb, "image/jpeg", max_age=7 * 86400)

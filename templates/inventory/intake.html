@@ -205,7 +205,7 @@
           <p class="hint" id="photo-hint" style="margin-top:8px">{% if not active_sku %}Photos attach as soon as a SKU is entered.{% else %}Drag to reorder. The starred photo is used everywhere as the thumbnail.{% endif %}</p>
           <div class="photo-grid" id="photo-grid">
             {% for photo in photos %}
-              <figure class="photo" draggable="true" data-photo-id="{{ photo.id }}" style="margin:0">
+              <figure class="photo" draggable="true" data-photo-id="{{ photo.id }}" data-mime="{{ photo.mime_type|default:'image/png' }}" style="margin:0">
                 {% if photo.is_thumb %}<span class="badge-thumb">Thumbnail</span>{% endif %}{% if photo.low_res %}<span class="badge-lowres" title="Small preview from the old app's export. Retake or replace it for listings.">Low-res</span>{% endif %}
                 <img src="{% url 'photo' photo.id %}?thumb=wide" alt="{{ photo.original_name }}" loading="lazy">
                 <div class="photo-actions">

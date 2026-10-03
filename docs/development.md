@@ -39,7 +39,7 @@ This keeps the Content-Security-Policy strict.
   enforced by a database constraint. Deleted items are soft-deleted (`deleted_at`) so *Undo* works.
 - **Photos belong to a SKU, not an item**, so they can be added before the item is saved.
   Files live in `data/media/sku_photos/<SKU>/`. Every upload is decoded by Pillow (non-images
-  are rejected), rotated upright, shrunk to 1200 px and saved as PNG.
+  are rejected), rotated upright, shrunk to 3000 px on the longest side (sharp for eBay zoom) and saved as PNG, stepped down if over eBay's 12 MB limit.
 - **Status values** are the six lanes in `inventory.models.Status`. `coerce_status()` maps
   old spellings ("SOLD", "Tested", "eBay Listed"). Moving to SOLD sets the SOLD badge.
 - **Price** is a single field. The old app kept two identical columns.

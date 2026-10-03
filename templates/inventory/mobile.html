@@ -47,7 +47,7 @@
     </div>
     <input type="file" id="m-camera-input" accept="image/*" capture="environment" hidden>
     <input type="file" id="m-gallery-input" accept="image/*" multiple hidden>
-    <p class="hint" id="m-upload-state" style="margin-top:8px">Photos shrink on the phone before uploading. Max {{ photo_limit_mb }} MB.</p>
+    <p class="hint" id="m-upload-state" style="margin-top:8px">Photos upload at full quality. Max {{ photo_limit_mb }} MB each.</p>
     <div class="photo-grid" id="m-photos">
       {% for photo in photos %}
         <a class="photo" href="{% url 'photo' photo.id %}" target="_blank" rel="noopener"><img src="{% url 'photo' photo.id %}?thumb=wide" alt="" loading="lazy">{% if photo.low_res %}<span class="badge-lowres">Low-res</span>{% endif %}</a>

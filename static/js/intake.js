@@ -400,6 +400,7 @@
     fig.style.margin = '0';
     fig.draggable = true;
     fig.setAttribute('data-photo-id', photo.id);
+    fig.setAttribute('data-mime', photo.mime || 'image/png');
     fig.innerHTML = (photo.is_thumb ? '<span class="badge-thumb">Thumbnail</span>' : '') +
       (photo.low_res ? '<span class="badge-lowres" title="Small preview from the old app\'s export. Retake or replace it for listings.">Low-res</span>' : '') +
       '<img alt="" loading="lazy">' +
@@ -410,8 +411,21 @@
       '</div>';
     fig.querySelector('img').src = photo.thumb_url;
     fig.querySelector('img').alt = photo.name;
+    showFullSize(fig);
     return fig;
   }
+
+  // Tiles first show the quick preview, then swap in the full photo. Dragging a tile to eBay (or the
+  // desktop) hands over whichever picture the tile is showing, so it must be the full one.
+  function showFullSize(fig) {
+    var img = fig.querySelector('img');
+    var full = '/photos/' + fig.getAttribute('data-photo-id') + '/';
+    if (!img || img.getAttribute('src') === full) return;
+    var loader = new Image();
+    loader.onload = function () { img.src = full; };
+    loader.src = full;
+  }
+  grid.querySelectorAll('.photo[data-photo-id]').forEach(showFullSize);
 
   function refreshCount() {
     var n = grid.querySelectorAll('.photo[data-photo-id]').length;
@@ -431,22 +445,25 @@
   }
 
   function shrink(file) {
-    // Big phone photos are shrunk before upload so they send quickly over Wi-Fi.
+    // Photos go up untouched so the server can resize them at full quality. Only a file over the
+    // upload limit is shrunk here (to the server's own 3000px cap, at near-lossless quality).
     return new Promise(function (resolve) {
-      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 2 * 1024 * 1024) return resolve(file);
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size <= config.photoLimitBytes) return resolve(file);
       var url = URL.createObjectURL(file);
       var img = new Image();
       img.onload = function () {
-        var scale = Math.min(1, 2000 / Math.max(img.width, img.height));
+        var scale = Math.min(1, 3000 / Math.max(img.width, img.height));
         if (scale >= 1) { URL.revokeObjectURL(url); return resolve(file); }
         var canvas = document.createElement('canvas');
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(function (blob) {
           URL.revokeObjectURL(url);
           resolve(blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file);
-        }, 'image/jpeg', 0.88);
+        }, 'image/jpeg', 0.95);
       };
       img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
       img.src = url;
@@ -518,6 +535,7 @@
     dropzone.addEventListener(name, function () { dropzone.classList.remove('is-hover'); });
   });
   dropzone.addEventListener('drop', function (e) {
+    if (dragged) { e.preventDefault(); return; }  // one of this SKU's own tiles, not a new photo
     if (e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); }
   });
   document.addEventListener('paste', function (e) {
@@ -564,25 +582,36 @@
     }
   });
 
-  // Drag to reorder
+  // Drag to reorder, or drag out to eBay / the desktop on any monitor. 'copyMove' matters: eBay's
+  // upload box only accepts a copy, so a move-only drag shows a "no entry" cursor there.
   var dragged = null;
   grid.addEventListener('dragstart', function (e) {
     dragged = e.target.closest('.photo[data-photo-id]');
     if (!dragged) return;
     dragged.classList.add('is-dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', dragged.getAttribute('data-photo-id'));
+    var id = dragged.getAttribute('data-photo-id');
+    var full = location.origin + '/photos/' + id + '/';
+    e.dataTransfer.effectAllowed = 'copyMove';
+    e.dataTransfer.setData('application/x-dispodex-photo', id);
+    e.dataTransfer.setData('text/uri-list', full);
+    e.dataTransfer.setData('text/plain', full);
+    // Chrome/Edge: dropping on the desktop or a folder saves the full-size file.
+    var mime = dragged.getAttribute('data-mime') || 'image/png';
+    var name = (currentSku() || 'photo').replace(/[^A-Za-z0-9_-]+/g, '_') + '_' + id + '.' + (mime.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    e.dataTransfer.setData('DownloadURL', mime + ':' + name + ':' + full + '?download=1');
   });
   grid.addEventListener('dragover', function (e) {
     var over = e.target.closest('.photo[data-photo-id]');
     if (!dragged || !over || over === dragged) return;
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     grid.querySelectorAll('.drop-target').forEach(function (el) { el.classList.remove('drop-target'); });
     over.classList.add('drop-target');
   });
   grid.addEventListener('drop', function (e) {
     var over = e.target.closest('.photo[data-photo-id]');
-    if (e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); return; }
+    // A tile dropped inside the grid also carries its picture as a file: reorder, never re-upload it.
+    if (!dragged && e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); return; }
     if (!dragged || !over || over === dragged) return;
     e.preventDefault();
     var rect = over.getBoundingClientRect();

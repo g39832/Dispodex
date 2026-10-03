@@ -177,6 +177,7 @@ def _photo_json(photo: Photo) -> dict:
         "size": photo.file_size,
         "is_thumb": photo.is_thumb,
         "low_res": photo.low_res,
+        "mime": photo.mime_type or "image/png",
         "url": reverse("photo", args=[photo.pk]),
         "thumb_url": reverse("photo", args=[photo.pk]) + "?thumb=wide",
     }

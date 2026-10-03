@@ -51,7 +51,7 @@ backup fails, Dispodex stops without changing anything.
 | `PINKSHEET_REQUIRE_LOGIN` | 0 | 1 = everyone signs in |
 | `PINKSHEET_MAINTENANCE_MODE` | 0 | 1 = show a "down for maintenance" page |
 | `PINKSHEET_PHOTO_CONVERT_TO_PNG` | 1 | Old app stored everything as PNG |
-| `PINKSHEET_PHOTO_MAX_DIMENSION` | 1200 | Longest side in pixels |
+| `PINKSHEET_PHOTO_MAX_DIMENSION` | 3000 | Longest side in pixels |
 | `BACKUP_HOUR` / `RECONCILE_HOUR` | 2 / 3 | Local time |
 
 Restart Dispodex after editing `.env`.

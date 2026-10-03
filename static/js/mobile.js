@@ -67,7 +67,7 @@
     var send = function (blob) {
       var fd = new FormData();
       fd.append('sku', sku);
-      fd.append('photo', blob, (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg');
+      fd.append('photo', blob, blob === file && file.name ? file.name : (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg');
       P.upload('/api/photos/upload/', fd, function (pct) { uploadState.textContent = 'Uploading… ' + pct + '%'; })
         .then(next)
         .catch(function (err) {
@@ -76,9 +76,12 @@
           uploadState.textContent = 'Upload failed: ' + err.message;
         });
     };
-    if (window.Compressor) {
+    // Send the camera's own file so the server resizes it at full quality. Only a file too big to
+    // upload, or one the server can't read (an iPhone HEIC), is converted here at near-lossless quality.
+    var readable = /^image\/(jpeg|png|webp|gif)$/.test(file.type);
+    if (window.Compressor && (!readable || file.size > 30 * 1024 * 1024)) {
       new Compressor(file, {
-        quality: 0.75, maxWidth: 2000, maxHeight: 2000, convertSize: 0,
+        quality: 0.95, maxWidth: 3000, maxHeight: 3000, convertSize: 0,
         success: send, error: function () { send(file); }
       });
     } else {

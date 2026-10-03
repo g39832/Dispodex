@@ -25,7 +25,11 @@ logger = logging.getLogger("pinksheet")
 ALLOWED_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
 EXTENSION_FOR_MIME = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
 MIME_FOR_EXTENSION = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif"}
-THUMB_SIZE = 320
+THUMB_SIZE = 640  # twice the largest list thumbnail, so it stays sharp on high-DPI screens
+# The photo grids (intake, phone page, listing images) show this wide a preview; people drag the full photo.
+GRID_PREVIEW_WIDTH = 1000
+# eBay refuses any photo over 12 MB, so a stored photo never goes over this.
+EBAY_MAX_BYTES = 12 * 1024 * 1024
 
 
 class PhotoError(Exception):
@@ -102,6 +106,10 @@ def _save_image(image: Image.Image, dest_dir: Path, source_format: str, *, conve
         name, mime = f"{token}.png", "image/png"
         target = dest_dir / name
         image.save(target, "PNG", optimize=True)
+        # A big, detailed PNG can pass eBay's 12 MB limit: step it down until it fits.
+        while target.stat().st_size > EBAY_MAX_BYTES and min(image.size) > 500:
+            image = image.resize((round(image.width * 0.85), round(image.height * 0.85)), Image.Resampling.LANCZOS)
+            image.save(target, "PNG", optimize=True)
     elif source_format == "GIF":
         name, mime = f"{token}.gif", "image/gif"
         target = dest_dir / name
@@ -109,11 +117,11 @@ def _save_image(image: Image.Image, dest_dir: Path, source_format: str, *, conve
     elif source_format == "WEBP":
         name, mime = f"{token}.webp", "image/webp"
         target = dest_dir / name
-        image.save(target, "WEBP", quality=80)
+        image.save(target, "WEBP", quality=95, method=6)
     else:
         name, mime = f"{token}.jpg", "image/jpeg"
         target = dest_dir / name
-        image.convert("RGB").save(target, "JPEG", quality=85, optimize=True, progressive=True)
+        image.convert("RGB").save(target, "JPEG", quality=95, subsampling=0, optimize=True, progressive=True)
     return StoredImage(stored_name=name, mime_type=mime, file_size=target.stat().st_size)
 
 
@@ -289,14 +297,14 @@ def thumb_dir() -> Path:
 def thumbnail_file(photo: Photo, size: int = THUMB_SIZE, *, width: int = 0) -> Path | None:
     """A cached small JPEG for fast grids; rebuilt automatically if the photo changes.
 
-    With ``width``, it is exactly that wide instead (enlarged if need be): the photo grids people
-    save or drag pictures from use eBay's minimum, so even a grabbed preview is big enough.
+    With ``width``, it is that wide instead: the photo's own width capped at ``width``, but never
+    under eBay's minimum (enlarged if need be), so even a grabbed preview is big enough.
     """
     source = photo_path(photo)
     if not source.exists():
         return None
     label = f"w{width}" if width else f"t{size}"
-    target = thumb_dir() / f"{photo.pk}-{int(source.stat().st_mtime)}-{label}.jpg"
+    target = thumb_dir() / f"{photo.pk}-{int(source.stat().st_mtime)}-{label}-q95.jpg"
     if target.exists():
         return target
     try:
@@ -304,6 +312,7 @@ def thumbnail_file(photo: Photo, size: int = THUMB_SIZE, *, width: int = 0) -> P
             image.load()
             image = ImageOps.exif_transpose(image)
             if width:
+                width = max(min_width(), min(width, image.width))
                 height = max(1, round(image.height * width / image.width))
                 image = image.resize((width, height), Image.Resampling.LANCZOS)
             else:
@@ -315,7 +324,7 @@ def thumbnail_file(photo: Photo, size: int = THUMB_SIZE, *, width: int = 0) -> P
                 image = background
             else:
                 image = image.convert("RGB")
-            image.save(target, "JPEG", quality=82, optimize=True)
+            image.save(target, "JPEG", quality=95, subsampling=0, optimize=True)
     except (OSError, ValueError, Image.DecompressionBombError):
         logger.warning("Could not build thumbnail for photo %s", photo.pk)
         return None

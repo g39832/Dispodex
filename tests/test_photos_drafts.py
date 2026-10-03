@@ -28,9 +28,9 @@ def test_upload_converts_every_format_to_png(client, image, fmt):
 
 
 def test_big_photos_are_shrunk(client, image):
-    upload(client, "SKU-1", image(size=(3000, 1500)))
+    upload(client, "SKU-1", image(size=(6000, 3000)))
     with Image.open(photo_service.photo_path(Photo.objects.get())) as stored:
-        assert max(stored.size) == 1200
+        assert max(stored.size) == 3000
 
 
 def test_narrow_photos_are_widened_for_ebay(client, image):
@@ -175,3 +175,86 @@ def test_discard_draft(client):
     save_draft(client, "D-1", {"notes": "a"})
     client.delete(reverse("api_draft", args=["D-1"]))
     assert not IntakeDraft.objects.exists()
+
+
+# ── photo quality and dragging photos out to eBay ────────────────────────────
+def test_big_uploads_stay_sharp_for_ebay_zoom(client, image):
+    upload(client, "SKU-1", image(size=(4000, 3000)))
+    with Image.open(photo_service.photo_path(Photo.objects.get())) as stored:
+        assert stored.size == (3000, 2250)  # well past eBay's 1600px zoom size
+
+
+def test_photos_already_under_the_cap_keep_every_pixel(client, image):
+    upload(client, "SKU-1", image(size=(2400, 1800)))
+    with Image.open(photo_service.photo_path(Photo.objects.get())) as stored:
+        assert stored.size == (2400, 1800)
+
+
+def test_stored_photos_never_pass_ebays_12mb_limit(client, settings, image, monkeypatch):
+    monkeypatch.setattr(photo_service, "EBAY_MAX_BYTES", 1024 * 1024)
+    noise = Image.effect_noise((1500, 1500), 100).convert("RGB")  # detailed, so PNG compresses badly
+    buffer = io.BytesIO()
+    noise.save(buffer, "PNG")
+    assert len(buffer.getvalue()) > 1024 * 1024
+    upload(client, "SKU-1", SimpleUploadedFile("noisy.png", buffer.getvalue(), content_type="image/png"))
+    photo = Photo.objects.get()
+    assert photo_service.photo_path(photo).stat().st_size <= 1024 * 1024
+    assert photo.file_size <= 1024 * 1024
+    with Image.open(photo_service.photo_path(photo)) as stored:
+        assert stored.format == "PNG" and stored.width >= 500
+
+
+def test_jpg_and_webp_are_kept_at_high_quality_when_not_converted(client, settings, image):
+    settings.PINKSHEET = {**settings.PINKSHEET, "PHOTO_CONVERT_TO_PNG": False}
+    original = Image.effect_noise((800, 600), 60).convert("RGB")
+    buffer = io.BytesIO()
+    original.save(buffer, "JPEG", quality=100)
+    upload(client, "SKU-1", SimpleUploadedFile("p.jpg", buffer.getvalue(), content_type="image/jpeg"))
+    with Image.open(photo_service.photo_path(Photo.objects.get())) as stored:
+        assert stored.format == "JPEG"
+        # Pillow reports the quantization tables; quality 95 keeps the luma table's values tiny.
+        assert max(stored.quantization[0]) <= 12  # quality 85 would be 28+
+
+
+def test_grid_previews_are_high_quality_and_rebuilt_after_the_change(client, image):
+    upload(client, "SKU-1", image(size=(1600, 1200)))
+    photo = Photo.objects.get()
+    thumb = photo_service.thumbnail_file(photo, width=photo_service.GRID_PREVIEW_WIDTH)
+    assert thumb.name.endswith("-q95.jpg")  # older, blurrier cached previews are not reused
+    with Image.open(thumb) as shown:
+        assert shown.width == 1000
+        assert max(shown.quantization[0]) <= 12  # quality 85 would be 28+
+    response = client.get(reverse("photo", args=[photo.pk]) + "?thumb=wide")
+    with Image.open(io.BytesIO(b"".join(response.streaming_content))) as shown:
+        assert shown.width == 1000
+    with Image.open(photo_service.thumbnail_file(photo)) as listed:
+        assert max(listed.size) == 640  # list thumbnails stay crisp on high-DPI screens
+
+
+def test_grid_previews_never_enlarge_a_photo_past_its_own_width(client, image):
+    upload(client, "SKU-1", image(size=(700, 500)))
+    response = client.get(reverse("photo", args=[Photo.objects.get().pk]) + "?thumb=wide")
+    with Image.open(io.BytesIO(b"".join(response.streaming_content))) as shown:
+        assert shown.size == (700, 500)
+
+
+def test_photo_tiles_say_what_kind_of_file_they_are_for_dragging(client, image):
+    from inventory.models import Item
+
+    Item.objects.create(sku="SKU-1", what_is_it="Laptop")
+    upload(client, "SKU-1", image())
+    photo = Photo.objects.get()
+    listed = client.get(reverse("api_photo_list") + "?sku=SKU-1").json()["photos"][0]
+    assert listed["mime"] == photo.mime_type and listed["url"] == f"/photos/{photo.pk}/"
+    html = client.get(reverse("intake") + "?sku=SKU-1").content.decode()
+    assert f'data-photo-id="{photo.pk}" data-mime="{photo.mime_type}"' in html
+
+
+def test_dragged_photo_link_serves_the_full_photo(client, image):
+    upload(client, "SKU-1", image(size=(4000, 3000)))
+    photo = Photo.objects.get()
+    response = client.get(f"/photos/{photo.pk}/")
+    with Image.open(io.BytesIO(b"".join(response.streaming_content))) as full:
+        assert full.size == (3000, 2250)
+    download = client.get(f"/photos/{photo.pk}/?download=1")
+    assert download["Content-Disposition"].startswith("attachment;")
