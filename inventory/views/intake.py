@@ -25,7 +25,7 @@ from inventory.models import (
     Status,
     YesNo,
 )
-from inventory.services import history
+from inventory.services import history, print_logo
 from inventory.services.items import ItemError, save_intake
 from squaresync.config import get_config
 
@@ -143,6 +143,7 @@ def intake(request):
 
     photos = list(Photo.objects.filter(sku_normalized=active_sku)) if active_sku else []
     thumb = next((p for p in photos if p.is_thumb), photos[-1] if photos else None)
+    logo = print_logo.current()
     context = {
         "page": "intake" if item is None else "item",
         "item": item,
@@ -168,7 +169,8 @@ def intake(request):
         "clear_draft": "new" in request.GET,
         "just_saved": "saved" in request.GET,
         "photo_limit_mb": settings.PINKSHEET["PHOTO_MAX_BYTES"] // (1024 * 1024),
-        "print_logo": settings.PINKSHEET["PRINT_LOGO_FILE"].is_file(),
+        "print_logo": logo,
+        "print_logo_version": int(logo.stat().st_mtime) if logo else 0,
         "intake_config": {
             "sku": active_sku,
             "itemId": item_id_value,

@@ -247,6 +247,7 @@
         <div class="panel-body stack">
           <button type="button" class="btn btn-sm" id="print-sheet-btn">{% icon "printer" %} Print sheet</button>
           <button type="button" class="btn btn-sm" id="print-ebay-btn">{% icon "printer" %} Print eBay sheet</button>
+          {% if not print_logo %}<a class="hint" id="add-print-logo" href="{% url 'print_logo_settings' %}">{% icon "alert" %} No logo for eBay sheets yet. Add it</a>{% endif %}
           <label class="check" style="padding:0"><input type="checkbox" id="print-pink"> Print on pink</label>
           <button type="button" class="btn btn-sm" id="print-sticker" data-label-preset="compact">{% icon "tag" %} Print sticker (Zebra)</button>
           <a class="btn btn-sm" id="open-script" href="{% url 'scripts' %}?sku={{ active_sku|urlencode }}">{% icon "script" %} eBay script builder</a>
@@ -278,7 +279,7 @@
       <div class="print-line"><b>What is it?</b> <span data-print="what_is_it"></span></div>
     </div>
     <div class="print-qr" id="print-qr"></div>
-    <div class="print-logo">{% if print_logo %}<img src="{% url 'print_logo' %}" alt="">{% endif %}</div>
+    <div class="print-logo">{% if print_logo %}<img src="{% url 'print_logo' %}?v={{ print_logo_version }}" alt="">{% endif %}</div>
   </div>
   <div class="print-cols">
     <div class="print-box">
@@ -290,7 +291,7 @@
       <dl data-print-list="d2"></dl>
     </div>
   </div>
-  <div class="print-box"><h3>Details</h3><dl data-print-list="details"></dl></div>
+  <div class="print-box print-details"><h3>Details</h3><dl data-print-list="details"></dl></div>
   <div class="print-box print-notes"><h3>Notes</h3><div data-print="notes"></div></div>
   <div class="print-gallery" id="print-gallery"></div>
   <div class="print-foot">{{ business_name }} · Dispodex · printed <span data-print="printed_at"></span></div>

@@ -10,7 +10,7 @@
 | `data/media/doc_photos/<post id>/` | Photos on Team docs posts |
 | `data/backups/` | Nightly backups, each with a `.sha256` checksum |
 | `data/logs/` | `app.log`, `square_sync.log`, `lookup.log` (rotated automatically) |
-| `data/print_logo.svg` | Optional shop logo printed on the eBay sheet in place of the QR code (SVG, PNG or JPG; set `PINKSHEET_PRINT_LOGO_FILE` for another name) |
+| `data/print_logo.svg` (or `.png` / `.jpg`) | Shop logo printed on the eBay sheet in place of the QR code. Staff upload it at *eBay script builder → Print logo* |
 | `data/secret_key.txt` | Created on first run; keeps sign-ins valid across restarts |
 | `data/qz-signing/` | Optional QZ Tray certificate and private key for silent label printing |
 

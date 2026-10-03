@@ -5,13 +5,14 @@ import mimetypes
 from pathlib import Path
 
 from django.conf import settings
-from django.http import FileResponse, Http404, HttpResponseNotModified
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
 
 from core.skus import normalize_sku, sanitize_filename, sku_directory
 from inventory.models import Photo
 from inventory.services import photos as photo_service
+from inventory.services import print_logo
 
 logger = logging.getLogger("pinksheet")
 
@@ -59,11 +60,19 @@ def serve_photo(request, photo_id: int):
 @require_GET
 def serve_print_logo(request):
     """The shop's logo for the printed eBay sheet. It lives in data/, outside the code."""
-    path = settings.PINKSHEET["PRINT_LOGO_FILE"]
-    content_type = mimetypes.guess_type(path.name)[0] or ""
-    if not path.is_file() or content_type not in ("image/svg+xml", "image/png", "image/jpeg"):
+    path = print_logo.current()
+    if path is None:
         raise Http404("No print logo")
-    response = _cached_file_response(request, path, content_type, max_age=3600)
+    # Read whole (it's at most 2 MB) so the file is never held open while staff replace it.
+    data = path.read_bytes()
+    etag = '"' + hashlib.sha1(data).hexdigest()[:20] + '"'
+    if request.headers.get("If-None-Match") == etag:
+        response = HttpResponseNotModified()
+        response["ETag"] = etag
+        return response
+    response = HttpResponse(data, content_type=print_logo.MIME_FOR_SUFFIX[path.suffix])
+    response["ETag"] = etag
+    response["Cache-Control"] = "private, max-age=3600"
     response["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
     return response
 

@@ -39,6 +39,7 @@ urlpatterns = [
     # ── Files ──────────────────────────────────────────────────────────────
     path("photos/<int:photo_id>/", photos.serve_photo, name="photo"),
     path("print-logo/", photos.serve_print_logo, name="print_logo"),
+    path("print-logo/settings/", pages.print_logo_settings, name="print_logo_settings"),
     path("docs/photos/<int:photo_id>/", doc_views.doc_photo, name="doc_photo"),
     path("listing-images/files/<str:sku>/<str:filename>", photos.serve_listing_image, name="listing_image_file"),
     path("exports/inventory.csv", exports.inventory_csv, name="export_csv"),

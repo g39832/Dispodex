@@ -379,30 +379,78 @@ def test_only_staff_can_change_listing_notes(client, settings, tmp_path, django_
 LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
 
 
-def test_intake_tools_offer_the_ebay_sheet_with_the_shop_logo(client, settings, tmp_path, stock):
-    logo = tmp_path / "print_logo.svg"
-    logo.write_text(LOGO)
-    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_FILE": logo}
+@pytest.fixture
+def logo_dir(settings, tmp_path):
+    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_DIR": tmp_path}
+    return tmp_path
+
+
+def upload_logo(client, name, data, content_type="image/svg+xml"):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    return client.post(reverse("print_logo_settings"), {"logo": SimpleUploadedFile(name, data, content_type=content_type)})
+
+
+def test_intake_tools_offer_the_ebay_sheet_with_the_shop_logo(client, logo_dir, stock):
+    (logo_dir / "print_logo.svg").write_text(LOGO)
     html = client.get(reverse("intake") + "?sku=LAP-1").content.decode()
     assert 'id="print-ebay-btn"' in html and "Print eBay sheet" in html
-    assert f'<div class="print-logo"><img src="{reverse("print_logo")}"' in html
+    assert f'<div class="print-logo"><img src="{reverse("print_logo")}?v=' in html
+    assert 'id="add-print-logo"' not in html
     # The parts the eBay sheet hides are marked so print.css can hide them.
     assert 'class="print-line print-status"' in html and 'class="print-price"' in html
+    assert 'class="print-box print-details"' in html and 'class="print-gallery"' in html
     response = client.get(reverse("print_logo"))
     assert response.status_code == 200 and response["Content-Type"] == "image/svg+xml"
     assert "sandbox" in response["Content-Security-Policy"]
-    assert b"".join(response.streaming_content).decode() == LOGO
+    assert response.content.decode() == LOGO
+    assert client.get(reverse("print_logo"), HTTP_IF_NONE_MATCH=response["ETag"]).status_code == 304
 
 
-def test_ebay_sheet_without_a_logo_file_shows_no_broken_image(client, settings, tmp_path, stock):
-    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_FILE": tmp_path / "missing.svg"}
+def test_without_a_logo_the_tools_point_to_where_to_add_it(client, logo_dir, stock):
     html = client.get(reverse("intake") + "?sku=LAP-1").content.decode()
     assert '<div class="print-logo"></div>' in html
+    assert f'id="add-print-logo" href="{reverse("print_logo_settings")}"' in html
     assert client.get(reverse("print_logo")).status_code == 404
 
 
-def test_print_logo_refuses_files_that_are_not_images(client, settings, tmp_path):
-    other = tmp_path / "secret.txt"
-    other.write_text("not a logo")
-    settings.PINKSHEET = {**settings.PINKSHEET, "PRINT_LOGO_FILE": other}
-    assert client.get(reverse("print_logo")).status_code == 404
+def test_staff_upload_the_logo_in_the_browser_and_it_prints_right_away(client, logo_dir, stock):
+    assert "No logo is saved on this server yet" in client.get(reverse("print_logo_settings")).content.decode()
+    response = upload_logo(client, "Shop logo.svg", LOGO.encode())
+    assert response.status_code == 302
+    assert (logo_dir / "print_logo.svg").read_text() == LOGO
+    assert "Current print logo" in client.get(reverse("print_logo_settings")).content.decode()
+    assert client.get(reverse("print_logo")).content.decode() == LOGO
+    assert f'<div class="print-logo"><img src="{reverse("print_logo")}?v=' in client.get("/intake/?sku=LAP-1").content.decode()
+
+    # A PNG replaces the SVG.
+    buffer = io.BytesIO()
+    from PIL import Image
+    Image.new("RGB", (40, 40), "white").save(buffer, "PNG")
+    assert upload_logo(client, "logo.png", buffer.getvalue(), "image/png").status_code == 302
+    assert not (logo_dir / "print_logo.svg").exists() and (logo_dir / "print_logo.png").exists()
+    assert client.get(reverse("print_logo"))["Content-Type"] == "image/png"
+
+    client.post(reverse("print_logo_settings"), {"action": "remove"})
+    assert not list(logo_dir.glob("print_logo.*"))
+
+
+@pytest.mark.parametrize("data, message", [
+    (b"not an image at all", "must be an SVG, PNG or JPG"),
+    (b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', "scripts"),
+    (b'<svg xmlns="http://www.w3.org/2000/svg"><rect onload="alert(1)"/></svg>', "scripts"),
+    (b'<svg xmlns="http://www.w3.org/2000/svg" xmlns:x="http://www.w3.org/1999/xlink"><image x:href="http://evil.example/a.png"/></svg>', "outside files"),
+    (b'<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY a "aaaa">]><svg xmlns="http://www.w3.org/2000/svg">&a;</svg>', "DOCTYPE"),
+])
+def test_unsafe_or_broken_logos_are_refused(client, logo_dir, data, message):
+    response = upload_logo(client, "logo.svg" if data.lstrip().startswith(b"<") else "logo.png", data)
+    assert response.status_code == 400 and message in response.content.decode()
+    assert not list(logo_dir.glob("print_logo.*"))
+
+
+def test_only_staff_change_the_logo_when_sign_in_is_on(client, logo_dir, settings, django_user_model):
+    settings.PINKSHEET = {**settings.PINKSHEET, "REQUIRE_LOGIN": True}
+    client.force_login(django_user_model.objects.create_user("floor", password="x"))
+    upload_logo(client, "logo.svg", LOGO.encode())
+    assert not list(logo_dir.glob("print_logo.*"))
+    assert "Only staff can change the print logo" in client.get(reverse("print_logo_settings")).content.decode()

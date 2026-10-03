@@ -10,6 +10,7 @@ from core.network import is_private_request
 from core.skus import normalize_sku
 from inventory.models import Item, ListingImageLayout, Photo, Status
 from inventory.services import history
+from inventory.services import print_logo as logo_service
 from inventory.services import scripts as script_service
 from inventory.services.scripts import using_example_boilerplate
 from operations.models import SystemState
@@ -81,6 +82,37 @@ def listing_notes(request):
         "page": "scripts", "text": text, "example": example, "can_edit": can_edit, "error": error,
         "last_edit": SystemState.get(LISTING_NOTES_EDITED_KEY), "max_length": script_service.MAX_BOILERPLATE,
     })
+
+
+PRINT_LOGO_EDITED_KEY = "print_logo_edited"
+
+
+def print_logo_settings(request):
+    """Add or change the logo printed on the eBay sheet (kept in data/, outside the code)."""
+    can_edit = _can_edit_listing_notes(request)
+    error = ""
+    if request.method == "POST":
+        if not can_edit:
+            messages.error(request, "Only staff can change the print logo.")
+            return redirect("print_logo_settings")
+        if request.POST.get("action") == "remove":
+            logo_service.remove()
+            SystemState.set(PRINT_LOGO_EDITED_KEY, f"removed by {request.actor} · {timezone.localtime():%b %d, %Y %I:%M %p}")
+            messages.success(request, "Print logo removed. eBay sheets print without a logo.")
+            return redirect("print_logo_settings")
+        try:
+            logo_service.save(request.FILES.get("logo"))
+        except logo_service.LogoError as exc:
+            error = str(exc)
+        else:
+            SystemState.set(PRINT_LOGO_EDITED_KEY, f"{request.actor} · {timezone.localtime():%b %d, %Y %I:%M %p}")
+            messages.success(request, "Print logo saved. eBay sheets use it right away.")
+            return redirect("print_logo_settings")
+    logo = logo_service.current()
+    return render(request, "inventory/print_logo.html", {
+        "page": "scripts", "logo": logo, "logo_version": int(logo.stat().st_mtime) if logo else 0,
+        "can_edit": can_edit, "error": error, "last_edit": SystemState.get(PRINT_LOGO_EDITED_KEY),
+    }, status=400 if error else 200)
 
 
 def listing_images(request):

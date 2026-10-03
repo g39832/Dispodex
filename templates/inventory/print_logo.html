@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Print logo{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'scripts' %}">eBay script builder</a> <span>/</span></div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Print logo</h1>
+    <p class="page-desc">The logo in the top corner of every printed eBay sheet, where the normal sheet has its QR code.</p>
+  </div>
+</div>
+
+<div class="doc-form stack" style="gap:16px">
+  {% if error %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endif %}
+  {% if logo %}
+    <div class="print-logo-preview" style="width:160px;height:160px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px">
+      <img src="{% url 'print_logo' %}?v={{ logo_version }}" alt="Current print logo" style="width:100%;height:100%;object-fit:contain">
+    </div>
+  {% else %}
+    <div class="callout warn">{% icon "alert" %}<span>No logo is saved on this server yet, so eBay sheets print without one.{% if can_edit %} Upload it below.{% endif %}</span></div>
+  {% endif %}
+  {% if can_edit %}
+    <form method="post" enctype="multipart/form-data" class="stack" style="gap:12px">
+      {% csrf_token %}
+      <label class="field-label" for="logo-file">{% if logo %}Replace the logo{% else %}Logo file{% endif %}</label>
+      <input class="input" type="file" id="logo-file" name="logo" accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg" required>
+      <p class="hint">SVG (sharpest when printed), PNG or JPG, up to 2 MB.</p>
+      <div class="head-actions">
+        <button type="submit" class="btn btn-primary">{% icon "check" %} Save logo</button>
+        {% if last_edit %}<span class="hint" style="margin-left:auto">Last changed by {{ last_edit }}</span>{% endif %}
+      </div>
+    </form>
+    {% if logo %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="remove">
+        <button type="submit" class="btn btn-sm btn-ghost">{% icon "trash" %} Remove logo</button>
+      </form>
+    {% endif %}
+  {% else %}
+    <div class="callout info">{% icon "info" %}<span>Only staff can change the print logo.{% if last_edit %} Last changed by {{ last_edit }}.{% endif %}</span></div>
+  {% endif %}
+</div>
+{% endblock %}
