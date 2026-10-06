@@ -200,7 +200,7 @@
           <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add photos">
             <strong>Add photos</strong>
             <span class="hint">Drop, paste or click. Up to {{ photo_limit_mb }} MB each.</span>
-            <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+            <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" multiple hidden>
           </div>
           <p class="hint" id="photo-hint" style="margin-top:8px">{% if not active_sku %}Photos attach as soon as a SKU is entered.{% else %}Drag to reorder. The starred photo is used everywhere as the thumbnail.{% endif %}</p>
           <div class="photo-grid" id="photo-grid">

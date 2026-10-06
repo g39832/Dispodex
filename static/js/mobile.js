@@ -77,8 +77,8 @@
         });
     };
     // Send the camera's own file so the server resizes it at full quality. Only a file too big to
-    // upload, or one the server can't read (an iPhone HEIC), is converted here at near-lossless quality.
-    var readable = /^image\/(jpeg|png|webp|gif)$/.test(file.type);
+    // upload, or one in a format the server can't read, is converted here at near-lossless quality.
+    var readable = /^image\/(jpeg|png|webp|gif|heic|heif)$/.test(file.type);
     if (window.Compressor && (!readable || file.size > 30 * 1024 * 1024)) {
       new Compressor(file, {
         quality: 0.95, maxWidth: 3000, maxHeight: 3000, convertSize: 0,

@@ -258,3 +258,23 @@ def test_dragged_photo_link_serves_the_full_photo(client, image):
         assert full.size == (3000, 2250)
     download = client.get(f"/photos/{photo.pk}/?download=1")
     assert download["Content-Disposition"].startswith("attachment;")
+
+
+def _phone_photo(fmt, ext, mime):
+    buffer = io.BytesIO()
+    main = Image.new("RGB", (800, 600), (58, 120, 194))
+    if fmt == "MPO":  # a JPEG with an extra embedded image, as iPhone HDR and Samsung photos are
+        main.save(buffer, "MPO", save_all=True, append_images=[Image.new("RGB", (200, 150))])
+    else:
+        main.save(buffer, fmt)
+    return SimpleUploadedFile(f"IMG_0001.{ext}", buffer.getvalue(), content_type=mime)
+
+
+@pytest.mark.parametrize("fmt, ext, mime", [("MPO", "jpg", "image/jpeg"), ("HEIF", "heic", "image/heic")])
+@pytest.mark.parametrize("to_png", [True, False])
+def test_phone_photos_are_accepted(client, settings, fmt, ext, mime, to_png):
+    settings.PINKSHEET = {**settings.PINKSHEET, "PHOTO_CONVERT_TO_PNG": to_png}
+    response = upload(client, "SKU-1", _phone_photo(fmt, ext, mime))
+    assert response.status_code == 200, response.content
+    with Image.open(photo_service.photo_path(Photo.objects.get())) as stored:
+        assert stored.format == ("PNG" if to_png else "JPEG")

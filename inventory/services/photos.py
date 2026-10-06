@@ -15,6 +15,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Max
 from PIL import Image, ImageOps, UnidentifiedImageError
+from pillow_heif import register_heif_opener
 
 from core.skus import normalize_sku, sanitize_filename, sku_directory
 from inventory.models import ItemEvent, Photo
@@ -22,7 +23,13 @@ from inventory.services import history
 
 logger = logging.getLogger("pinksheet")
 
+# iPhones save photos as HEIC; this lets Pillow read them (they are stored as the app's normal format).
+register_heif_opener()
+
 ALLOWED_FORMATS = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
+# Formats phones produce that are read and then saved as JPEG. Pillow names a JPEG with extra
+# embedded images (iPhone HDR, Samsung, portrait shots) "MPO".
+PHONE_FORMATS = {"MPO", "HEIF"}
 EXTENSION_FOR_MIME = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
 MIME_FOR_EXTENSION = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif"}
 THUMB_SIZE = 640  # twice the largest list thumbnail, so it stays sharp on high-DPI screens
@@ -59,8 +66,8 @@ def _open_image(source) -> Image.Image:
         raise PhotoError("That image is far too large to process.") from exc
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as exc:
         raise PhotoError("is not a valid image file") from exc
-    if image.format not in ALLOWED_FORMATS:
-        raise PhotoError("must be JPG, PNG, WebP, or GIF")
+    if image.format not in ALLOWED_FORMATS and image.format not in PHONE_FORMATS:
+        raise PhotoError("must be JPG, PNG, WebP, GIF, or HEIC")
     return image
 
 
