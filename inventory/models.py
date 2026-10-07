@@ -123,6 +123,7 @@ class Item(models.Model):
     battery_health = models.CharField(max_length=255, blank=True)
     graphics_card = models.CharField(max_length=255, blank=True)
     screen_resolution = models.CharField(max_length=255, blank=True)
+    fcc_id = models.CharField("FCC ID", max_length=64, blank=True)
     diagnostics_test_ran = models.BooleanField(default=False)
     wifi_card_installed = models.BooleanField(default=False)
     serial_number = models.CharField(max_length=128, blank=True)

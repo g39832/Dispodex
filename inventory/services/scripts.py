@@ -68,6 +68,7 @@ SPEC_FIELDS = [
     ("ssd_gb", "Storage"),
     ("graphics_card", "Graphics Card"),
     ("screen_resolution", "Screen Resolution"),
+    ("fcc_id", "FCC ID"),
     ("os", "Operating System"),
     ("battery_health", "Battery Health"),
     ("cords_adapters", "Included Cables / Adapters"),

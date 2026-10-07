@@ -47,6 +47,7 @@ EXPORT_COLUMNS = [
     ("in_ebay_room", "In eBay Room"),
     ("diagnostics_test_ran", "Diagnostics Ran"),
     ("serial_number", "Serial Number"),
+    ("fcc_id", "FCC ID"),
     ("notes", "Notes"),
     ("ebay_category_path", "eBay Category Path"),
     ("ebay_category_id", "eBay Category ID"),
@@ -78,6 +79,7 @@ PARTNER_COLUMNS = [
     ("diagnostics_test_ran", "Diagnostics Ran"),
     ("cords_adapters", "Cords/Adapters Included"),
     ("serial_number", "Serial Number"),
+    ("fcc_id", "FCC ID"),
     ("quantity", "Qty"),
     ("price", "Price"),
 ]

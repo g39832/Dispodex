@@ -69,6 +69,7 @@ TEXT_COLUMNS = {
     "eBay Category Path": "ebay_category_path",
     "eBay Category ID": "ebay_category_id",
     "Serial Number": "serial_number",
+    "FCC ID": "fcc_id",
     "Notes": "notes",
 }
 CHOICE_COLUMNS = {

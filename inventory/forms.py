@@ -18,7 +18,7 @@ class IntakeForm(forms.ModelForm):
             "date_received", "source", "where_it_goes", "functional", "condition",
             "cords_adapters", "keep_items_together", "picture_taken", "power_on",
             "brand_model", "ram", "ssd_gb", "cpu", "os", "compatible_os", "battery_health", "graphics_card",
-            "screen_resolution", "diagnostics_test_ran", "wifi_card_installed", "quantity", "notes",
+            "screen_resolution", "fcc_id", "diagnostics_test_ran", "wifi_card_installed", "quantity", "notes",
         ]
         error_messages = {
             "sku": {"required": "Please fill in the SKU."},
@@ -54,7 +54,7 @@ class IntakeForm(forms.ModelForm):
         data = super().clean()
         for name in ("ebay_category", "ebay_category_path", "ebay_category_id", "source", "where_it_goes",
                      "brand_model", "ram", "ssd_gb", "cpu", "os", "battery_health", "graphics_card",
-                     "screen_resolution"):
+                     "screen_resolution", "fcc_id"):
             if isinstance(data.get(name), str):
                 data[name] = data[name].strip()
         return data

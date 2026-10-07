@@ -38,6 +38,7 @@ TRACKED_FIELDS = {
     "diagnostics_test_ran": "Diagnostics test ran",
     "wifi_card_installed": "Wi-Fi card installed",
     "serial_number": "Serial number",
+    "fcc_id": "FCC ID",
     "notes": "Notes",
     "reviewed": "Badge",
     "ready": "Ready",

@@ -26,7 +26,7 @@ COPYABLE_FIELDS = [
     "date_received", "source", "where_it_goes", "functional", "condition",
     "cords_adapters", "keep_items_together", "picture_taken", "power_on",
     "brand_model", "ram", "ssd_gb", "cpu", "os", "compatible_os", "battery_health",
-    "graphics_card", "screen_resolution", "diagnostics_test_ran", "wifi_card_installed",
+    "graphics_card", "screen_resolution", "fcc_id", "diagnostics_test_ran", "wifi_card_installed",
     "price", "quantity", "notes",
 ]
 
