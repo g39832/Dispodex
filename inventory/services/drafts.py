@@ -22,7 +22,7 @@ ALLOWED_FIELDS = {
     "sku", "status", "what_is_it", "date_received", "source", "functional", "condition",
     "cords_adapters", "keep_items_together", "picture_taken",
     "power_on", "brand_model", "ram", "ssd_gb", "cpu", "os", "battery_health", "graphics_card",
-    "screen_resolution", "diagnostics_test_ran", "wifi_card_installed", "compatible_os",
+    "screen_resolution", "fcc_id", "diagnostics_test_ran", "wifi_card_installed", "compatible_os",
     "where_it_goes", "price", "quantity", "notes", "ebay_category", "ebay_category_path",
     "ebay_category_id",
 }

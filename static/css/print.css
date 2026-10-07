@@ -1,5 +1,5 @@
 /* Print styles. On the intake page only the printable sheet is shown. */
-@page { size: letter; margin: 0.45in; }
+@page { size: letter; margin: 0.5in; }
 
 .print-sheet { display: none; }
 
@@ -16,10 +16,13 @@
 
   /* Intake: swap the form for the printable sheet */
   body:has(.print-sheet) #intake-form { display: none !important; }
-  .print-sheet { display: block; color: #111; }
+  /* Nothing on the sheet may be wider than the paper: grid tracks get a 0 minimum (a plain 1fr won't
+     shrink below its longest word) and long unbroken values (serials, FCC IDs, URLs) wrap. */
+  .print-sheet { display: block; color: #111; width: 100%; max-width: 100%; overflow-wrap: anywhere; }
+  .print-sheet * { min-width: 0; max-width: 100%; }
   body.print-pink .print-sheet { background: #ffd9e6; padding: 0.2in; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  .print-head { display: grid; grid-template-columns: 1.3in 1fr 1.2in; gap: 0.2in; align-items: center; border-bottom: 2px solid #111; padding-bottom: 0.12in; }
+  .print-head { display: grid; grid-template-columns: 1.3in minmax(0, 1fr) 1.2in; gap: 0.2in; align-items: center; border-bottom: 2px solid #111; padding-bottom: 0.12in; }
   .print-thumb { width: 1.3in; height: 1.3in; border: 1px solid #999; display: grid; place-items: center; overflow: hidden; background: #fff; }
   .print-thumb img { width: 100%; height: 100%; object-fit: cover; }
   .print-sku { font-size: 24pt; font-weight: 700; letter-spacing: -0.01em; }
@@ -33,15 +36,15 @@
   body.print-ebay .print-qr, body.print-ebay .print-status, body.print-ebay .print-price,
   body.print-ebay .print-details, body.print-ebay .print-gallery { display: none; }
   body.print-ebay .print-logo { display: block; }
-  .print-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.15in; margin-top: 0.12in; }
+  .print-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.15in; margin-top: 0.12in; }
   .print-box { border: 1px solid #999; border-radius: 4px; padding: 0.08in 0.12in; margin-top: 0.12in; break-inside: avoid; background: #fff; }
   .print-cols .print-box { margin-top: 0; }
   .print-box h3 { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px; }
-  .print-box dl { display: grid; grid-template-columns: max-content 1fr; gap: 1px 10px; margin: 0; font-size: 9.5pt; }
+  .print-box dl { display: grid; grid-template-columns: fit-content(45%) minmax(0, 1fr); gap: 1px 10px; margin: 0; font-size: 9.5pt; }
   .print-box dt { color: #444; }
   .print-box dd { margin: 0; font-weight: 600; }
   .print-notes div { white-space: pre-wrap; min-height: 0.8in; font-size: 10pt; }
-  .print-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.1in; margin-top: 0.12in; }
+  .print-gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.1in; margin-top: 0.12in; }
   .print-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid #999; }
   .print-foot { margin-top: 0.12in; font-size: 8pt; color: #555; text-align: right; }
 }

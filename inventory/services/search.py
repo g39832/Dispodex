@@ -16,7 +16,7 @@ MAX_FIELD_LENGTH = 80
 
 # Everything the main search box looks through. Each word typed must appear in at least one of these.
 SEARCH_FIELDS = [
-    "sku", "what_is_it", "brand_model", "serial_number", "cpu", "ram", "ssd_gb", "os", "graphics_card",
+    "sku", "what_is_it", "brand_model", "serial_number", "fcc_id", "cpu", "ram", "ssd_gb", "os", "graphics_card",
     "screen_resolution", "battery_health", "notes", "where_it_goes", "source", "ebay_category",
     "ebay_category_path", "what_box", "in_ebay_room",
 ]
@@ -31,6 +31,7 @@ TEXT_FILTERS = {
     "os": ("os", "OS"),
     "gpu": ("graphics_card", "Graphics card"),
     "serial": ("serial_number", "Serial number"),
+    "fcc": ("fcc_id", "FCC ID"),
     "location": ("where_it_goes", "Location"),
     "source": ("source", "Came from"),
     "notes": ("notes", "Notes"),
