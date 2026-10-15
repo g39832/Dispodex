@@ -33,9 +33,9 @@ urlpatterns = [
     path("docs/<int:post_id>/edit/", doc_views.doc_edit, name="doc_edit"),
     path("docs/<int:post_id>/delete/", doc_views.doc_delete, name="doc_delete"),
     path("docs/<int:post_id>/pin/", doc_views.doc_pin, name="doc_pin"),
-    path("card/<str:sku>/", pages.card_redirect, name="card"),
-    path("m/<str:sku>/", pages.mobile_card, name="mobile_card"),
-    path("print/<str:sku>/", pages.print_card, name="print_card"),
+    path("card/<path:sku>/", pages.card_redirect, name="card"),
+    path("m/<path:sku>/", pages.mobile_card, name="mobile_card"),
+    path("print/<path:sku>/", pages.print_card, name="print_card"),
     # ── Files ──────────────────────────────────────────────────────────────
     path("photos/<int:photo_id>/", photos.serve_photo, name="photo"),
     path("print-logo/", photos.serve_print_logo, name="print_logo"),
