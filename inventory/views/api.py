@@ -8,7 +8,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import transaction
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -149,7 +149,13 @@ def board_cards(request):
     thumbs = photo_service.thumbnail_map(i.sku_normalized for i in items)
     lanes = {value: [] for value in Status.values}
     for item in items:
-        lanes[item.status].append(
+        # One odd record (a SKU with "/", a stray status) must not take the whole board down.
+        try:
+            qr_url = request.build_absolute_uri(reverse("card", args=[item.sku_normalized]))
+        except NoReverseMatch:
+            logger.warning("Board: no card link for SKU %r (item %s)", item.sku_normalized, item.pk)
+            qr_url = ""
+        lanes.get(item.status, lanes[Status.INTAKE.value]).append(
             {
                 "id": item.pk,
                 "sku": item.sku,
@@ -163,7 +169,7 @@ def board_cards(request):
                 "ready": item.ready,
                 "qty": item.quantity,
                 "thumb_id": thumbs.get(item.sku_normalized),
-                "qr_url": request.build_absolute_uri(reverse("card", args=[item.sku_normalized])),
+                "qr_url": qr_url,
             }
         )
     more = {Status.SOLD.value: max(0, sold_total - SOLD_ON_BOARD)}

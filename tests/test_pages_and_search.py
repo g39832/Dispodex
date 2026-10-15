@@ -78,6 +78,20 @@ def test_board_cards_grouped_by_lane(client, stock):
     assert [c["sku"] for c in lanes["sold"]] == ["LAP-2"]
 
 
+def test_board_cards_survive_a_sku_with_a_slash(client, stock):
+    Item.objects.create(sku="BAD/1", what_is_it="Laptop")
+    response = client.get(reverse("api_board_cards"))
+    assert response.status_code == 200
+    card = next(c for c in response.json()["lanes"]["intake"] if c["sku"] == "BAD/1")
+    assert card["qr_url"] == ""
+
+
+def test_intake_rejects_a_sku_with_a_slash(db):
+    from inventory.services.items import ItemError, save_intake
+    with pytest.raises(ItemError):
+        save_intake({"sku": "AB/12"})
+
+
 def test_card_redirect_depends_on_device(client, stock):
     phone = client.get("/card/LAP-1/", HTTP_USER_AGENT="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)")
     assert phone["Location"] == "/m/LAP-1/"

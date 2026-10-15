@@ -73,6 +73,8 @@ def save_intake(cleaned: dict, item_id: int | None = None) -> SaveResult:
     sku_norm = normalize_sku(cleaned.get("sku"))
     if not sku_norm:
         raise ItemError("SKU is required.")
+    if "/" in sku_norm:
+        raise ItemError('A SKU cannot contain "/". Use "-" instead.')
 
     item = None
     if item_id:

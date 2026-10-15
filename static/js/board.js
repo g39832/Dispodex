@@ -296,7 +296,7 @@
       var holder = document.createElement('div');
       drawer.appendChild(holder);
       card.appendChild(drawer);
-      if (window.QRCode) new QRCode(holder, { text: card.dataset.qr, width: 132, height: 132, correctLevel: QRCode.CorrectLevel.H });
+      if (window.QRCode && card.dataset.qr) new QRCode(holder, { text: card.dataset.qr, width: 132, height: 132, correctLevel: QRCode.CorrectLevel.H });
     } else if (act === 'print') {
       printCard(card.dataset.sku);
     } else if (act === 'delete') {
