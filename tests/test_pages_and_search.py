@@ -93,10 +93,24 @@ def test_pages_survive_a_sku_with_a_slash(client, stock, url):
     assert client.get(url).status_code == 200
 
 
-def test_intake_rejects_a_sku_with_a_slash(db):
+@pytest.mark.parametrize("sku", ["AB/12", "./'G-1000-19", "G-1000-19'", "-G-1", "A\\B", "A?B", "A#B", "A%B", "A.B", "X" * 65])
+def test_intake_rejects_a_bad_sku(db, sku):
     from inventory.services.items import ItemError, save_intake
     with pytest.raises(ItemError):
-        save_intake({"sku": "AB/12"})
+        save_intake({"sku": sku})
+
+
+@pytest.mark.parametrize("sku", ["G-1000-19", "gc-2602-320 ", "RM-6202-14 READY", "GC-6202-88 (NEED PHOTOS)", "A_B,C"])
+def test_sku_rule_accepts_real_skus(sku):
+    from core.skus import normalize_sku, sku_problem
+    assert sku_problem(normalize_sku(sku)) is None
+
+
+def test_intake_sheet_shows_the_sku_rule(client, stock):
+    sku = "./'G-1000-19"
+    page = client.post("/intake/", {"sku": sku, "what_is_it": "Laptop", "status": "intake", "quantity": "1"})
+    assert "must start with a letter or number" in page.content.decode()
+    assert not Item.objects.filter(sku_normalized=sku).exists()
 
 
 def test_card_redirect_depends_on_device(client, stock):

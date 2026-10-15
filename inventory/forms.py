@@ -1,6 +1,6 @@
 from django import forms
 
-from core.skus import normalize_sku
+from core.skus import normalize_sku, sku_problem
 from inventory.models import Item, Status
 from inventory.services.items import ItemError, parse_price
 
@@ -27,8 +27,9 @@ class IntakeForm(forms.ModelForm):
 
     def clean_sku(self):
         sku = normalize_sku(self.cleaned_data.get("sku"))
-        if not sku:
-            raise forms.ValidationError("Please fill in the SKU.")
+        problem = sku_problem(sku)
+        if problem:
+            raise forms.ValidationError(problem)
         return sku
 
     def clean_what_is_it(self):

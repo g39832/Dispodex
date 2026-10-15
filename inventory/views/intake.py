@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from core.skus import normalize_sku
+from core.skus import SKU_RULE, normalize_sku
 from imaging import ingest as imaging_ingest
 from imaging.models import DeviceReport
 from inventory.forms import IntakeForm
@@ -148,6 +148,7 @@ def intake(request):
         "page": "intake" if item is None else "item",
         "item": item,
         "item_id": item_id_value,
+        "sku_rule": SKU_RULE,
         "device_id": device_id if device_id.isdigit() else "",
         "values": values,
         "errors": errors,

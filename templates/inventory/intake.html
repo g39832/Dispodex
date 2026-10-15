@@ -36,7 +36,8 @@
       <div class="title-row">
         <label class="sr-only" for="sku-input">SKU</label>
         <input class="sku-input" id="sku-input" name="sku" value="{{ values.sku }}" placeholder="Type or scan a SKU"
-               required autofocus spellcheck="false" autocapitalize="characters">
+               required autofocus spellcheck="false" autocapitalize="characters"
+               pattern="\s*[A-Za-z0-9][A-Za-z0-9 _\(\),\-]*\s*" title="{{ sku_rule }}">
       </div>
       <div class="title-meta">
         <label class="sr-only" for="status-select">Status</label>

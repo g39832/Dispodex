@@ -8,7 +8,7 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.utils import timezone
 
-from core.skus import normalize_sku
+from core.skus import normalize_sku, sku_problem
 from inventory.models import IntakeDraft, Item, ItemEvent, Review
 from inventory.services import history
 from inventory.services import photos as photo_service
@@ -73,8 +73,9 @@ def save_intake(cleaned: dict, item_id: int | None = None) -> SaveResult:
     sku_norm = normalize_sku(cleaned.get("sku"))
     if not sku_norm:
         raise ItemError("SKU is required.")
-    if "/" in sku_norm:
-        raise ItemError('A SKU cannot contain "/". Use "-" instead.')
+    problem = sku_problem(sku_norm)
+    if problem:
+        raise ItemError(problem)
 
     item = None
     if item_id:
