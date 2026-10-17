@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Import scrap{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'scrap' %}">Scrap</a> <span>/</span></div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Import scrap from a spreadsheet</h1>
+    <p class="page-desc">Bring in your scrap log from Google Sheets. Each row becomes one entry with its date, who took it in and its weight. You'll see a preview before anything is saved.</p>
+  </div>
+</div>
+
+{% if demo %}
+  <div class="callout info">{% icon "info" %}<span>Importing is turned off in the demo.</span></div>
+{% elif not stash %}
+<div class="scrap-import-steps">
+  <ol class="scrap-steps">
+    <li>Open your sheet in Google Sheets.</li>
+    <li>Choose <strong>File → Download → Comma-separated values (.csv)</strong>.</li>
+    <li>Pick that file below. The first row should hold the column names, like <em>Date</em>, <em>Name</em> and <em>Weight</em>.</li>
+  </ol>
+  <form method="post" enctype="multipart/form-data" class="panel panel-pad scrap-upload" data-scrap-upload>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="upload">
+    <div class="field">
+      <label class="field-label" for="scrap-file">CSV or Excel file</label>
+      <input class="input" id="scrap-file" type="file" name="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" required>
+      <span class="hint">Importing the same sheet again later only adds the rows that weren't imported before.</span>
+    </div>
+    <div class="head-actions"><button class="btn btn-primary" type="submit">{% icon "upload" %} Read file</button></div>
+  </form>
+</div>
+{% else %}
+<form method="post" class="scrap-import" data-scrap-mapping>
+  {% csrf_token %}
+  <section class="panel panel-pad">
+    <h2 class="scrap-panel-title">{% icon "list" %} Match the columns in {{ stash.name }}</h2>
+    <p class="muted">We matched what we could. Change any that are wrong. Only the weight is required.</p>
+    <div class="scrap-mapping">
+      {% for name, label, chosen in field_rows %}
+      <div class="field">
+        <label class="field-label" for="map-{{ name }}">{{ label }}{% if name == "weight" %} <span class="faint">· required</span>{% endif %}</label>
+        <select class="input" id="map-{{ name }}" name="map_{{ name }}" data-autosubmit>
+          <option value="">{% if name == "weight" %}Pick a column{% else %}Not in this file{% endif %}</option>
+          {% for header in stash.headers %}<option value="{{ header }}"{% if header == chosen %} selected{% endif %}>{{ header }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endfor %}
+    </div>
+    {% if not stash.mapping.moved %}
+    <fieldset class="scrap-moved-default">
+      <legend class="field-label">The file doesn't say whether each row was moved to scrap. Treat its rows as:</legend>
+      <div class="choices">
+        <label class="choice green"><input type="radio" name="moved_default" value="1"{% if stash.moved_default %} checked{% endif %} data-autosubmit><span>Already moved to scrap</span></label>
+        <label class="choice amber"><input type="radio" name="moved_default" value="0"{% if not stash.moved_default %} checked{% endif %} data-autosubmit><span>Waiting to move</span></label>
+      </div>
+    </fieldset>
+    {% else %}<input type="hidden" name="moved_default" value="{% if stash.moved_default %}1{% else %}0{% endif %}">{% endif %}
+    <noscript><button class="btn" name="action" value="preview" type="submit">{% icon "refresh" %} Update preview</button></noscript>
+  </section>
+
+  {% if error %}
+    <div class="callout warn">{% icon "alert" %}<span>{{ error }}</span></div>
+  {% elif result %}
+  <div class="stats scrap-stats">
+    <div class="stat"><div class="stat-label">Rows to import</div><div class="stat-value" data-import-count>{{ result.new_rows|length }}</div>
+      <div class="stat-sub">of {{ result.total_rows }} in the file</div></div>
+    <div class="stat"><div class="stat-label">Total weight</div><div class="stat-value">{{ result.new_lbs|lbs }} <small>lbs</small></div>
+      <div class="stat-sub">{{ result.new_moved }} moved · {{ result.new_waiting }} waiting</div></div>
+    <div class="stat"><div class="stat-label">Already imported</div><div class="stat-value">{{ result.duplicates }}</div>
+      <div class="stat-sub">skipped, so nothing is counted twice</div></div>
+    <div class="stat"><div class="stat-label">Left out</div><div class="stat-value">{{ result.skipped|length }}</div>
+      <div class="stat-sub">no usable weight or date</div></div>
+  </div>
+
+  {% if result.skipped %}
+  <details class="callout warn scrap-skipped"><summary>{% icon "alert" %} {{ result.skipped|length }} row{{ result.skipped|length|pluralize }} will be left out</summary>
+    <ul>{% for reason in result.skipped|slice:":25" %}<li>{{ reason }}</li>{% endfor %}{% if result.skipped|length > 25 %}<li>…and {{ result.skipped|length|add:"-25" }} more</li>{% endif %}</ul>
+  </details>
+  {% endif %}
+  {% if result.new_categories %}
+  <p class="muted">New categories that will be made: {{ result.new_categories|join:", " }}.</p>
+  {% endif %}
+
+  <section class="section">
+    <div class="section-head"><h2 class="section-title">Preview{% if result.rows|length > 15 %} · first 15 rows{% endif %}</h2></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Row</th><th>Taken in</th><th>Taken in by</th><th class="right">Lbs</th><th>What it is</th><th class="hide-sm">Category</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for row in preview %}
+        <tr{% if row.duplicate %} class="is-duplicate"{% endif %}>
+          <td class="faint num">{{ row.line }}</td>
+          <td class="nowrap">{{ row.weighed_at|date:"M j, Y" }}</td>
+          <td>{{ row.weighed_by }}</td>
+          <td class="right num"><strong>{{ row.weight|lbs }}</strong></td>
+          <td>{{ row.description }}</td>
+          <td class="hide-sm">{{ row.category }}</td>
+          <td>{% if row.duplicate %}<span class="tag">Already imported</span>{% elif row.moved_at %}<span class="tag green">Moved</span>{% else %}<span class="tag amber">Waiting</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr class="empty"><td colspan="7">No rows have a usable weight with these columns.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  {% endif %}
+
+  <div class="head-actions scrap-import-actions">
+    <button class="btn btn-primary" name="action" value="import" type="submit"{% if error or not result.new_rows %} disabled{% endif %}>
+      {% icon "check" %} Import {% if result %}{{ result.new_rows|length }} row{{ result.new_rows|length|pluralize }}{% endif %}</button>
+    <button class="btn btn-ghost" name="action" value="cancel" type="submit" formnovalidate>Cancel</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/scrap.js' %}"></script>{% endblock %}

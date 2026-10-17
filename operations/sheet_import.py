@@ -218,8 +218,8 @@ def _read_json(path: Path) -> tuple[list[str], list[dict]]:
     return headers, [r for r in rows if any(r.values())]
 
 
-def read(path: Path, original_name: str) -> tuple[list[str], list[dict]]:
-    """Headers and rows (header -> text). Raises SheetError without changing anything."""
+def read_table(path: Path, original_name: str) -> tuple[list[str], list[dict]]:
+    """Headers and rows (header -> text) of any spreadsheet-style file, whatever its columns."""
     suffix = Path(original_name).suffix.lower()
     if suffix in CONVERT_SUFFIXES:
         raise SheetError(f"{suffix} files can't be read directly. Open it and use Save As → Excel Workbook (.xlsx) or CSV, then import that.")
@@ -232,6 +232,12 @@ def read(path: Path, original_name: str) -> tuple[list[str], list[dict]]:
         headers, rows = _read_json(path)
     else:
         headers, rows = _read_delimited(path)
+    return headers, rows
+
+
+def read(path: Path, original_name: str) -> tuple[list[str], list[dict]]:
+    """Headers and rows (header -> text). Raises SheetError without changing anything."""
+    headers, rows = read_table(path, original_name)
     if not any(COLUMN_ALIASES.get(_norm(h)) == "sku" for h in headers):
         raise SheetError('The file needs a "SKU" column so each row can be matched to an item. '
                          "Found: " + (", ".join(headers[:12]) or "no column names") + ".")

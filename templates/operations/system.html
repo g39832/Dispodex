@@ -116,6 +116,19 @@
   </div>
 </section>
 
+{% if credit_url %}
+<section class="section" id="about">
+  <div class="section-head"><h2 class="section-title">{% icon "info" %} About Dispodex</h2></div>
+  <div class="panel panel-pad about-panel">
+    <p>Dispodex was designed and built by <a href="{{ credit_url }}" target="_blank" rel="noopener"><strong>{{ credit_name }}</strong></a>.</p>
+    <div class="head-actions">
+      <a class="btn" href="{{ credit_url }}" target="_blank" rel="noopener">{% icon "github" %} {{ credit_name }} on GitHub</a>
+      {% if repo_url %}<a class="btn btn-ghost" href="{{ repo_url }}" target="_blank" rel="noopener">{% icon "link" %} Source code</a>{% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
 {% if runs %}
 <section class="section">
   <div class="section-head"><h2 class="section-title">{% icon "check" %} Reconciliation runs</h2></div>

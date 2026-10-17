@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Scrap{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Scrap</h1>
+    <p class="page-desc">Take in scrap with its date, who took it in and its weight, then mark it moved to the scrap side. Totals show how many pounds came in and went over.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn" href="{% url 'scrap_import' %}">{% icon "upload" %} Import CSV</a>
+    <a class="btn" href="{% url 'scrap_categories' %}">{% icon "tag" %} Categories</a>
+    <a class="btn" href="{% url 'export_scrap' %}{% if export_query %}?{{ export_query }}{% endif %}">{% icon "download" %} Export CSV</a>
+  </div>
+</div>
+
+<div class="chips scrap-ranges" aria-label="Time period">
+  {% for key, label in ranges %}
+    <a class="chip{% if range_key == key %} is-active{% endif %}" href="?range={{ key }}">{{ label }}</a>
+  {% endfor %}
+  <form method="get" class="scrap-custom-range{% if range_key == 'custom' %} is-active{% endif %}">
+    <label class="sr-only" for="scrap-from">From</label>
+    <input class="input" type="date" id="scrap-from" name="from" value="{{ from }}" max="{{ today }}" aria-label="From date">
+    <span class="faint">to</span>
+    <input class="input" type="date" id="scrap-to" name="to" value="{{ to }}" aria-label="To date">
+    <button class="btn btn-sm" type="submit">Show</button>
+  </form>
+</div>
+
+<div class="stats scrap-stats">
+  <div class="stat"><div class="stat-label">{% icon "clock" %} Waiting to move</div>
+    <div class="stat-value" data-stat="waiting">{{ waiting_totals.lbs|lbs }} <small>lbs</small></div>
+    <div class="stat-sub">{{ waiting_totals.count }} item{{ waiting_totals.count|pluralize }} on the scale side now</div></div>
+  <div class="stat"><div class="stat-label">{% icon "move" %} Moved to scrap · {{ period_label }}</div>
+    <div class="stat-value" data-stat="moved">{{ moved_totals.lbs|lbs }} <small>lbs</small></div>
+    <div class="stat-sub">{{ moved_totals.count }} item{{ moved_totals.count|pluralize }}</div></div>
+  <div class="stat"><div class="stat-label">{% icon "scale" %} Taken in · {{ period_label }}</div>
+    <div class="stat-value" data-stat="taken">{{ weighed_totals.lbs|lbs }} <small>lbs</small></div>
+    <div class="stat-sub">{{ weighed_totals.count }} item{{ weighed_totals.count|pluralize }}</div></div>
+  <div class="stat"><div class="stat-label">{% icon "archive" %} Moved to scrap · all time</div>
+    <div class="stat-value" data-stat="all">{{ all_moved_totals.lbs|lbs }} <small>lbs</small></div>
+    <div class="stat-sub">{{ all_moved_totals.count }} item{{ all_moved_totals.count|pluralize }}</div></div>
+</div>
+
+<div class="scrap-work">
+  <section class="panel panel-pad scrap-take-in" aria-labelledby="take-in-title">
+    <h2 class="scrap-panel-title" id="take-in-title">{% icon "scale" %} Take in scrap</h2>
+    {% if demo %}
+      <div class="callout info">{% icon "info" %}<span>Taking in scrap is turned off in the demo.</span></div>
+    {% else %}
+    <form method="post" action="{% url 'scrap_weigh' %}" class="scrap-form" data-scrap-weigh>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% if scale_ready %}
+      <div class="scrap-scale" data-scrap-scale="{% url 'api_scrap_scale' %}" data-state="loading" aria-live="polite">
+        <div class="scrap-scale-read">
+          <span class="scrap-scale-label">{% icon "scale" %} Scale</span>
+          <span class="scrap-scale-value num" data-scale-value>…</span>
+          <span class="scrap-scale-status" data-scale-status>Connecting</span>
+        </div>
+        <button class="btn" type="button" data-scale-use disabled>{% icon "download" %} Use scale weight</button>
+      </div>
+      <input type="hidden" name="source" value="typed" data-scale-source>
+      {% endif %}
+      <div class="field scrap-weight-field">
+        <label class="field-label" for="scrap-weight">Weight (lbs) <span class="faint">· required{% if scale_ready %} · from the scale or typed in{% endif %}</span></label>
+        <input class="input scrap-weight-input" id="scrap-weight" name="weight" type="text" inputmode="decimal"
+               autocomplete="off" required placeholder="0.00" pattern="[0-9]*[.,]?[0-9]*" data-scrap-weight>
+      </div>
+      <div class="scrap-form-row">
+        <div class="field">
+          <label class="field-label" for="scrap-date">Date taken in <span class="faint">· required</span></label>
+          <input class="input" id="scrap-date" name="taken_in" type="date" value="{{ today }}" max="{{ today }}" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="scrap-by">Taken in by <span class="faint">· required</span></label>
+          <input class="input" id="scrap-by" name="weighed_by" maxlength="40" required autocomplete="name"
+                 value="{% if not ask_name %}{{ request.actor }}{% endif %}" placeholder="Name" list="scrap-people">
+          <datalist id="scrap-people">{% for name in people %}<option value="{{ name }}">{% endfor %}</datalist>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label" for="scrap-what">What it is <span class="faint">· optional</span></label>
+        <input class="input" id="scrap-what" name="description" maxlength="200" autocomplete="off" placeholder="e.g. Box of cables, 3 dead laptops">
+      </div>
+      <div class="scrap-form-row">
+        <div class="field">
+          <label class="field-label" for="scrap-category">Category <span class="faint">· optional</span></label>
+          <input class="input" id="scrap-category" name="category" maxlength="40" autocomplete="off" list="scrap-category-options" placeholder="Pick or type a new one">
+          <datalist id="scrap-category-options">{% for category in categories %}<option value="{{ category.name }}">{% endfor %}</datalist>
+        </div>
+        <div class="field">
+          <label class="field-label" for="scrap-note">Note <span class="faint">· optional</span></label>
+          <input class="input" id="scrap-note" name="note" maxlength="255" autocomplete="off">
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" name="moved_now" value="1"> It's already been moved to scrap</label>
+      <div class="head-actions">
+        <button class="btn btn-primary" type="submit">{% icon "plus" %} Add to scrap</button>
+      </div>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="panel panel-pad scrap-waiting" aria-labelledby="waiting-title">
+    <h2 class="scrap-panel-title" id="waiting-title">{% icon "clock" %} Waiting to move
+      <span class="faint scrap-panel-sub">{{ waiting_totals.lbs|lbs }} lbs</span></h2>
+    {% if waiting %}
+    <form method="post" action="{% url 'scrap_move' %}" data-scrap-move>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% if ask_name and not demo %}
+      <div class="field scrap-mover">
+        <label class="field-label" for="scrap-mover">Your name <span class="faint">· who is moving it</span></label>
+        <input class="input" id="scrap-mover" name="name" maxlength="40" required autocomplete="name" list="scrap-people">
+      </div>
+      {% endif %}
+      <label class="check scrap-select-all"><input type="checkbox" data-select-all> Select all</label>
+      <ul class="scrap-waiting-list">
+        {% for entry in waiting %}
+        <li class="scrap-waiting-row">
+          <label class="check"><input type="checkbox" name="entry" value="{{ entry.pk }}" data-lbs="{{ entry.weight_lbs }}" aria-label="Select {{ entry.description|default:'scrap' }}, {{ entry.weight_lbs }} lbs"></label>
+          <a class="scrap-waiting-text" href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">
+            <span class="scrap-waiting-what">{{ entry.description|default:"Scrap" }}{% if entry.category %} <span class="tag">{{ entry.category.name }}</span>{% endif %}</span>
+            <span class="doc-meta"><span>{% icon "calendar" %} {{ entry.weighed_at|date:"M j" }}</span><span>{% icon "user" %} {{ entry.weighed_by }}</span></span>
+          </a>
+          <span class="scrap-lbs num">{{ entry.weight_lbs|lbs }} lbs</span>
+          {% if not demo %}<button class="btn btn-sm" type="submit" name="only" value="{{ entry.pk }}" title="Mark this one moved to scrap">{% icon "move" %} Moved</button>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% if waiting_more %}<p class="hint">Showing the oldest {{ waiting|length }}. {{ waiting_more }} more are waiting.</p>{% endif %}
+      {% if not demo %}
+      <div class="scrap-move-bar">
+        <span class="muted" data-selected-summary>Tick what was carried over</span>
+        <button class="btn btn-primary" type="submit" data-move-selected disabled>{% icon "move" %} Mark moved to scrap</button>
+      </div>
+      {% endif %}
+    </form>
+    {% else %}
+      <div class="doc-empty scrap-empty">{% icon "check" %}<p>Nothing is waiting. Everything taken in has been moved to scrap.</p></div>
+    {% endif %}
+  </section>
+</div>
+
+{% if by_category or by_person %}
+<div class="grid-2 scrap-breakdowns">
+  <section class="section">
+    <div class="section-head"><h2 class="section-title">{% icon "tag" %} Moved to scrap by category · {{ period_label }}</h2></div>
+    {% if by_category %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Category</th><th class="right">Items</th><th class="right">Lbs</th></tr></thead>
+      <tbody>{% for row in by_category %}<tr>
+        <td><div class="scrap-bar-cell"><span>{{ row.name }}</span><span class="scrap-bar" aria-hidden="true"><span style="width: {{ row.share }}%"></span></span></div></td>
+        <td class="right num">{{ row.count }}</td><td class="right num">{{ row.lbs|lbs }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="muted">Nothing moved to scrap in this period.</p>{% endif %}
+  </section>
+  <section class="section">
+    <div class="section-head"><h2 class="section-title">{% icon "users" %} By person · {{ period_label }}</h2></div>
+    {% if by_person %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Person</th><th class="right">Taken in (lbs)</th><th class="right">Moved (lbs)</th></tr></thead>
+      <tbody>{% for person in by_person %}<tr>
+        <td>{{ person.name }}</td>
+        <td class="right num">{{ person.weighed|lbs }} <span class="faint">· {{ person.weighed_n }}</span></td>
+        <td class="right num">{{ person.moved|lbs }} <span class="faint">· {{ person.moved_n }}</span></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="muted">No one took in or moved scrap in this period.</p>{% endif %}
+  </section>
+</div>
+{% endif %}
+
+<section class="section" id="history">
+  <div class="section-head"><h2 class="section-title">{% icon "list" %} History · {{ period_label }}</h2>
+    <span class="muted">{{ page_obj.paginator.count }} entr{{ page_obj.paginator.count|pluralize:"y,ies" }}</span></div>
+  {% if total_entries %}
+  <form method="get" class="toolbar" role="search" data-scrap-filters>
+    {% if range_key == "custom" %}<input type="hidden" name="from" value="{{ from }}"><input type="hidden" name="to" value="{{ to }}">
+    {% else %}<input type="hidden" name="range" value="{{ range_key }}">{% endif %}
+    <div class="search">{% icon "search" %}<input class="input" type="search" name="q" value="{{ filters.q }}" placeholder="Search what, notes, category or person" aria-label="Search scrap history"></div>
+    <select class="input" name="category" aria-label="Category" data-autosubmit>
+      <option value="">Any category</option>
+      <option value="none"{% if filters.category == "none" %} selected{% endif %}>No category</option>
+      {% for category in all_categories %}<option value="{{ category.pk }}"{% if filters.category == category.pk|stringformat:"d" %} selected{% endif %}>{{ category.name }}</option>{% endfor %}
+    </select>
+    <select class="input" name="person" aria-label="Person" data-autosubmit>
+      <option value="">Anyone</option>
+      {% for name in people %}<option value="{{ name }}"{% if filters.person == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+    <select class="input" name="state" aria-label="Moved or waiting" data-autosubmit>
+      <option value="">Moved or waiting</option>
+      <option value="moved"{% if filters.state == "moved" %} selected{% endif %}>Moved to scrap</option>
+      <option value="waiting"{% if filters.state == "waiting" %} selected{% endif %}>Waiting to move</option>
+    </select>
+    <button class="btn" type="submit">Search</button>
+    {% if filtered %}<a class="btn btn-ghost" href="?{{ period_query }}#history">Clear</a>{% endif %}
+  </form>
+  {% endif %}
+  <div class="table-wrap"><table class="table scrap-table">
+    <thead><tr><th>Taken in</th><th>Taken in by</th><th class="right">Lbs</th><th>What it is</th><th class="hide-sm">Category</th><th>Status</th><th class="hide-sm"></th></tr></thead>
+    <tbody>
+      {% for entry in page_obj %}
+      <tr>
+        <td class="nowrap" title="{{ entry.weighed_at|date:'M j, Y g:i A' }}">{{ entry.weighed_at|date:"M j, Y" }}</td>
+        <td>{{ entry.weighed_by }}</td>
+        <td class="right num nowrap"><strong>{{ entry.weight_lbs|lbs }}</strong></td>
+        <td><a href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">{{ entry.description|default:"Scrap" }}</a>{% if entry.note %} <span class="faint" title="{{ entry.note }}">· {{ entry.note|truncatechars:40 }}</span>{% endif %}</td>
+        <td class="hide-sm">{% if entry.category %}<span class="tag">{{ entry.category.name }}</span>{% endif %}</td>
+        <td>{% if entry.moved_at %}<span class="tag green" title="Moved {{ entry.moved_at|date:'M j, Y g:i A' }} by {{ entry.moved_by }}">Moved {{ entry.moved_at|date:"M j" }} · {{ entry.moved_by }}</span>{% else %}<span class="tag amber">Waiting</span>{% endif %}</td>
+        <td class="hide-sm right"><a class="btn btn-ghost btn-sm" href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">Edit</a></td>
+      </tr>
+      {% empty %}
+      <tr class="empty"><td colspan="7">{% if filtered %}No entries match these filters. <a href="?{{ period_query }}#history">Show everything</a>{% elif total_entries %}Nothing was taken in or moved in this period.{% else %}No scrap yet. Take in the first item above, or import your Google Sheet.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="pagination" aria-label="Pages">
+    {% if page_obj.has_previous %}<a href="?{% if page_query %}{{ page_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}#history">← Newer</a>{% endif %}
+    <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?{% if page_query %}{{ page_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}#history">Older →</a>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/scrap.js' %}"></script>{% endblock %}

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "operations",
     "teamdocs",
     "imaging",
+    "scrap",
 ]
 
 MIDDLEWARE = [
@@ -170,6 +171,10 @@ SILENCED_SYSTEM_CHECKS = [*globals().get("SILENCED_SYSTEM_CHECKS", []), "securit
 # ── Dispodex behaviour ────────────────────────────────────────────────────
 PINKSHEET = {
     "BUSINESS_NAME": env("PINKSHEET_BUSINESS_NAME", "My Shop"),
+    # Who built Dispodex, shown at the bottom of the sidebar and on the System page.
+    "CREDIT_NAME": env("PINKSHEET_CREDIT_NAME", "g39832"),
+    "CREDIT_URL": env("PINKSHEET_CREDIT_URL", "https://github.com/g39832"),
+    "REPO_URL": env("PINKSHEET_REPO_URL", "https://github.com/g39832/Dispodex"),
     "REQUIRE_LOGIN": env_bool("PINKSHEET_REQUIRE_LOGIN", False),
     "BEHIND_HTTPS_PROXY": env_bool("PINKSHEET_BEHIND_HTTPS_PROXY", False),
     "MAINTENANCE_MODE": env_bool("PINKSHEET_MAINTENANCE_MODE", False),
@@ -179,6 +184,8 @@ PINKSHEET = {
     "LISTING_IMAGES": env_bool("PINKSHEET_LISTING_IMAGES", False),
     # Shared secret the imaging app sends with its JSON reports (blank = reports turned off).
     "IMAGING_API_KEY": env("PINKSHEET_IMAGING_API_KEY", ""),
+    # The shop scale's agent, e.g. http://<scale computer>:8765/api/weight (blank = no live scale on Scrap).
+    "SCALE_URL": env("PINKSHEET_SCALE_URL", ""),
     "MAINTENANCE_MESSAGE": env(
         "PINKSHEET_MAINTENANCE_MESSAGE",
         "Dispodex is temporarily offline for maintenance.",

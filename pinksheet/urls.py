@@ -9,6 +9,7 @@ from inventory.views import api, dashboard, exports, intake, lookup, pages, phot
 from operations import views as ops_views
 from squaresync import views as square_views
 from imaging import views as imaging_views
+from scrap import views as scrap_views
 from teamdocs import views as doc_views
 
 urlpatterns = [
@@ -33,6 +34,15 @@ urlpatterns = [
     path("docs/<int:post_id>/edit/", doc_views.doc_edit, name="doc_edit"),
     path("docs/<int:post_id>/delete/", doc_views.doc_delete, name="doc_delete"),
     path("docs/<int:post_id>/pin/", doc_views.doc_pin, name="doc_pin"),
+    path("scrap/", scrap_views.scrap, name="scrap"),
+    path("scrap/weigh/", scrap_views.weigh, name="scrap_weigh"),
+    path("scrap/move/", scrap_views.move, name="scrap_move"),
+    path("scrap/categories/", scrap_views.categories, name="scrap_categories"),
+    path("scrap/import/", scrap_views.import_view, name="scrap_import"),
+    path("api/scrap/scale/", scrap_views.scale_reading, name="api_scrap_scale"),
+    path("scrap/<int:entry_id>/", scrap_views.edit, name="scrap_edit"),
+    path("scrap/<int:entry_id>/unmove/", scrap_views.unmove, name="scrap_unmove"),
+    path("scrap/<int:entry_id>/delete/", scrap_views.delete, name="scrap_delete"),
     path("card/<path:sku>/", pages.card_redirect, name="card"),
     path("m/<path:sku>/", pages.mobile_card, name="mobile_card"),
     path("print/<path:sku>/", pages.print_card, name="print_card"),
@@ -50,6 +60,7 @@ urlpatterns = [
     path("exports/partner.xlsx", exports.partner_xlsx, name="export_partner_xlsx"),
     path("exports/partner-sortable.xlsx", exports.partner_sortable_xlsx, name="export_partner_sortable_xlsx"),
     path("exports/archive.csv", archive_views.archive_csv, name="export_archive"),
+    path("exports/scrap.csv", scrap_views.export_csv, name="export_scrap"),
     # ── JSON API used by the pages ─────────────────────────────────────────
     path("api/items/undo-delete/", api.item_undo_delete, name="api_undo_delete"),
     path("api/items/bulk-update/", api.item_bulk_update, name="api_item_bulk_update"),

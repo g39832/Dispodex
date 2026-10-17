@@ -55,6 +55,9 @@
           <button type="submit" class="nav-button">{% icon "logout" %} Sign out</button>
         </form>
       {% endif %}
+      {% if credit_url %}
+      <a class="sidebar-credit" href="{{ credit_url }}" target="_blank" rel="noopener" title="See who built Dispodex on GitHub">{% icon "github" %} <span class="nav-ellipsis">Built by {{ credit_name }}</span></a>
+      {% endif %}
     </div>
   </aside>
 

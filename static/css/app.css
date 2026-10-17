@@ -80,6 +80,14 @@ svg.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: no
 }
 .sidebar-footer .nav a:hover, .sidebar-footer button.nav-button:hover { background: var(--bg-hover); color: var(--text); }
 .sidebar-footer .nav a.is-active { background: var(--bg-active); color: var(--text); }
+.sidebar-credit {
+  display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: 4px; padding: 6px 8px;
+  font-size: 12px; color: var(--text-faint); text-decoration: none; border-radius: var(--radius);
+}
+.sidebar-credit:hover { background: var(--bg-hover); color: var(--text); }
+.sidebar-credit .icon { width: 14px; height: 14px; flex: none; }
+.about-panel { display: grid; gap: 12px; }
+.about-panel a:not(.btn) { color: var(--blue-soft-text); }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex: none; }
 .status-dot.on { background: var(--green); }
 .status-dot.warn { background: #d19a2a; }
@@ -336,6 +344,85 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .imaging-details[open] { display: grid; gap: 10px; }
 .imaging-details .kv { font-size: 12.5px; margin-top: 8px; }
 .imaging-log { margin: 0; padding-left: 18px; font-size: 12.5px; display: grid; gap: 3px; max-height: 220px; overflow-y: auto; }
+/* Scrap */
+.scrap-ranges { align-items: center; margin-bottom: 14px; }
+.scrap-custom-range { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-left: 4px; }
+.scrap-custom-range .input { width: auto; min-width: 0; }
+.scrap-custom-range.is-active .input { border-color: var(--blue); }
+.scrap-stats { margin-bottom: 16px; }
+.scrap-stats .stat-value small { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+.scrap-work { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 16px; align-items: start; }
+.scrap-panel-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; font-weight: 650; margin-bottom: 12px; }
+.scrap-panel-sub { font-weight: 500; font-size: 13px; margin-left: auto; }
+.scrap-form { display: grid; gap: 12px; }
+.scrap-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+.scrap-scale {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: var(--radius-lg); background: var(--bg-subtle); border: 1px solid var(--border);
+}
+.scrap-scale-read { display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; min-width: 0; }
+.scrap-scale-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted); align-self: center; }
+.scrap-scale-value { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.scrap-scale-status { font-size: 12.5px; color: var(--text-faint); overflow-wrap: anywhere; }
+.scrap-scale[data-state="stable"] { border-color: var(--green); }
+.scrap-scale[data-state="stable"] .scrap-scale-status { color: var(--green-soft-text); }
+.scrap-scale[data-state="settling"] .scrap-scale-status { color: var(--amber-text); }
+.scrap-scale[data-state="offline"] .scrap-scale-value { color: var(--text-faint); }
+.scrap-scale[data-state="offline"] .scrap-scale-status { color: var(--red); }
+.scrap-weight-input.is-from-scale { border-color: var(--green); }
+.scrap-weight-input {font-size: 26px; font-weight: 650; height: 52px; font-variant-numeric: tabular-nums; }
+.scrap-mover { margin-bottom: 8px; }
+.scrap-waiting-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); max-height: 520px; overflow-y: auto; }
+.scrap-waiting-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.scrap-waiting-row.is-selected { background: var(--blue-soft); }
+.scrap-waiting-text { flex: 1; min-width: 0; display: grid; gap: 2px; color: inherit; text-decoration: none; }
+.scrap-waiting-text:hover .scrap-waiting-what { text-decoration: underline; }
+.scrap-waiting-what { font-weight: 600; overflow-wrap: anywhere; }
+.scrap-waiting-what .tag { font-weight: 500; vertical-align: 1px; }
+.scrap-lbs { font-weight: 650; white-space: nowrap; }
+.scrap-move-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding-top: 12px; }
+.scrap-empty { padding: 28px 12px; }
+.scrap-breakdowns .section { margin-top: 24px; }
+.scrap-bar-cell { display: grid; gap: 4px; min-width: 120px; }
+.scrap-bar { display: block; height: 5px; border-radius: 999px; background: var(--bg-subtle); overflow: hidden; }
+.scrap-bar span { display: block; height: 100%; background: var(--green); border-radius: inherit; }
+.scrap-table td { vertical-align: top; }
+.scrap-trail { margin-bottom: 16px; }
+.scrap-danger { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); }
+.scrap-cat-input { flex: 1 1 220px; }
+.scrap-rename { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.scrap-rename .input { flex: 1; min-width: 0; max-width: 260px; }
+.scrap-cat-table tr.is-hidden td { color: var(--text-faint); }
+.scrap-import-steps { display: grid; gap: 16px; max-width: 640px; }
+.scrap-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.5; }
+.scrap-upload { display: grid; gap: 12px; }
+.scrap-import { display: grid; gap: 16px; }
+.scrap-mapping { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-top: 12px; }
+.scrap-moved-default { border: 0; padding: 0; margin: 14px 0 0; }
+.scrap-skipped summary { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.scrap-skipped ul { margin: 8px 0 0; padding-left: 20px; font-size: 13px; }
+.scrap-skipped { display: block; }
+.table tr.is-duplicate td { color: var(--text-faint); }
+.scrap-import-actions { position: sticky; bottom: 0; padding: 12px 0; background: var(--bg); border-top: 1px solid var(--border); }
+@media (max-width: 960px) {
+  .scrap-work { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  /* Totals two across, so the Take in form is close to the top on a phone. */
+  .scrap-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .scrap-stats .stat { padding: 10px 12px; }
+  .scrap-stats .stat-value { font-size: 20px; }
+  .scrap-custom-range { margin-left: 0; width: 100%; }
+  .scrap-custom-range .input { flex: 1 1 120px; }
+  .scrap-waiting-row { flex-wrap: wrap; }
+  .scrap-waiting-text { flex-basis: calc(100% - 40px); }
+  .scrap-waiting-row .scrap-lbs { margin-left: 30px; }
+  .scrap-waiting-row .btn { margin-left: auto; }
+  .scrap-move-bar .btn { flex: 1 1 100%; }
+  .scrap-danger .btn { width: 100%; justify-content: center; }
+  .scrap-danger form { flex: 1 1 100%; }
+}
+
 @media (max-width: 600px) {
   .doc-row { padding: 12px 4px; gap: 12px; }
   .doc-row-cover { width: 64px; height: 52px; }

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Scrap entry{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{{ next|default:'/scrap/' }}">Scrap</a> <span>/</span></div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">{{ entry.weight_lbs|lbs }} lbs{% if entry.description %} · {{ entry.description }}{% endif %}</h1>
+    <p class="page-desc">{% if entry.moved_at %}<span class="tag green">Moved to scrap</span>{% else %}<span class="tag amber">Waiting to move</span>{% endif %}</p>
+  </div>
+</div>
+
+<div class="panel panel-pad scrap-trail">
+  <dl class="kv">
+    <dt>Taken in</dt><dd>{{ entry.weighed_at|date:"M j, Y g:i A" }} by <strong>{{ entry.weighed_by }}</strong></dd>
+    <dt>Moved to scrap</dt><dd>{% if entry.moved_at %}{{ entry.moved_at|date:"M j, Y g:i A" }} by <strong>{{ entry.moved_by }}</strong>{% else %}Not yet{% endif %}</dd>
+    <dt>Weight from</dt><dd>{{ entry.get_source_display }}</dd>
+    {% if entry.added_by and entry.added_by != entry.weighed_by %}<dt>Entered by</dt><dd>{{ entry.added_by }}</dd>{% endif %}
+    {% if entry.edited_at %}<dt>Last edited</dt><dd>{{ entry.edited_at|date:"M j, Y g:i A" }} by {{ entry.edited_by }}</dd>{% endif %}
+  </dl>
+</div>
+
+{% if demo %}
+  <div class="callout info">{% icon "info" %}<span>Editing is turned off in the demo.</span></div>
+{% else %}
+{% if error %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endif %}
+<form method="post" class="stack scrap-form" style="gap:16px">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  {% if ask_name %}
+  <div class="field">
+    <label class="field-label" for="edit-name">Your name <span class="faint">· required</span></label>
+    <input class="input" id="edit-name" name="name" maxlength="40" required autocomplete="name" placeholder="Shown as the last person to edit it">
+  </div>
+  {% endif %}
+  <div class="scrap-form-row">
+    <div class="field">
+      <label class="field-label" for="edit-weight">Weight (lbs)</label>
+      <input class="input" id="edit-weight" name="weight" inputmode="decimal" required value="{{ form.weight }}">
+    </div>
+    <div class="field">
+      <label class="field-label" for="edit-date">Date taken in</label>
+      <input class="input" id="edit-date" name="taken_in" type="date" required value="{{ form.taken_in }}" max="{{ today }}">
+    </div>
+  </div>
+  <div class="field">
+    <label class="field-label" for="edit-by">Taken in by</label>
+    <input class="input" id="edit-by" name="weighed_by" maxlength="40" required value="{{ form.weighed_by }}">
+  </div>
+  <div class="field">
+    <label class="field-label" for="edit-what">What it is</label>
+    <input class="input" id="edit-what" name="description" maxlength="200" value="{{ form.description }}">
+  </div>
+  <div class="scrap-form-row">
+    <div class="field">
+      <label class="field-label" for="edit-category">Category</label>
+      <input class="input" id="edit-category" name="category" maxlength="40" value="{{ form.category }}" list="edit-category-options" autocomplete="off">
+      <datalist id="edit-category-options">{% for category in categories %}<option value="{{ category.name }}">{% endfor %}</datalist>
+    </div>
+    <div class="field">
+      <label class="field-label" for="edit-note">Note</label>
+      <input class="input" id="edit-note" name="note" maxlength="255" value="{{ form.note }}">
+    </div>
+  </div>
+  <div class="head-actions">
+    <button type="submit" class="btn btn-primary">{% icon "check" %} Save changes</button>
+    <a class="btn btn-ghost" href="{{ next|default:'/scrap/' }}">Cancel</a>
+  </div>
+</form>
+
+<div class="scrap-danger">
+  {% if entry.moved_at %}
+  <form method="post" action="{% url 'scrap_unmove' entry.pk %}">
+    {% csrf_token %}
+    <button class="btn" type="submit">{% icon "undo" %} Not moved yet: put back to waiting</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{% url 'scrap_delete' entry.pk %}" data-scrap-delete data-title="{{ entry.weight_lbs|lbs }} lbs{% if entry.description %} of {{ entry.description }}{% endif %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="btn btn-danger" type="submit">{% icon "trash" %} Delete entry</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/scrap.js' %}"></script>{% endblock %}

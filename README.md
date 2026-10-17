@@ -6,7 +6,7 @@ Square sync. It is a Python rewrite of an older PHP app, which it leaves untouch
 
 ## About this project
 
-Dispodex replaced a PHP + SQLite tool used daily by a small team on a local network. Highlights:
+Built by [g39832](https://github.com/g39832). Dispodex replaced a PHP + SQLite tool used daily by a small team on a local network. Highlights:
 
 - **Intake sheet** with autosaved drafts, conflict detection when two people edit the same SKU,
   drag-and-drop photo uploads (resized server-side with Pillow) and a phone-friendly QR card.
@@ -19,6 +19,8 @@ Dispodex replaced a PHP + SQLite tool used daily by a small team on a local netw
   reconciliation that repairs safe mismatches.
 - **Operations**: nightly verified SQLite backups, automatic backup before database updates,
   health checks, a background worker and a data importer that verifies every record and photo.
+- **Scrap tracking**: take scrap in with its date, who took it in and its weight, mark it moved to the
+  scrap side, see pounds by period, category and person, and import a Google Sheets CSV log.
 - **Responsive UI** tested from 320 px phones to wide monitors, light and dark themes.
 
 **Tech:** Python 3.11, Django 5.2, SQLite (WAL), Waitress, WhiteNoise, Pillow, openpyxl,

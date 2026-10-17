@@ -11,6 +11,7 @@ NAV = [
     ("scripts", "Script builder", "script"),
     ("listing_images", "Listing images", "image"),
     ("imaging", "Imaging", "cpu"),
+    ("scrap", "Scrap", "scale"),
     ("docs", "Team docs", "book"),
 ]
 
@@ -24,4 +25,7 @@ def app_context(request):
         "square_enabled": get_config().enabled,
         "require_login": settings.PINKSHEET["REQUIRE_LOGIN"],
         "demo_mode": settings.PINKSHEET["DEMO_MODE"],
+        "credit_name": settings.PINKSHEET["CREDIT_NAME"],
+        "credit_url": settings.PINKSHEET["CREDIT_URL"],
+        "repo_url": settings.PINKSHEET["REPO_URL"],
     }

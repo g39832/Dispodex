@@ -31,6 +31,18 @@ def money(value):
 
 
 @register.filter
+def lbs(value):
+    """A weight in pounds: 1,204.5 rather than 1204.50, and 12 rather than 12.00."""
+    if value in (None, ""):
+        return "0"
+    try:
+        text = f"{Decimal(str(value)):,.2f}"
+    except ArithmeticError:
+        return str(value)
+    return text.rstrip("0").rstrip(".")
+
+
+@register.filter
 def filesize(value):
     try:
         size = float(value)

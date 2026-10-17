@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Scrap categories{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'scrap' %}">Scrap</a> <span>/</span></div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Scrap categories</h1>
+    <p class="page-desc">Make the categories your team uses. They're optional on each entry, and you can also type a new one right on the Take in form. Hiding one takes it off the list without changing old entries.</p>
+  </div>
+</div>
+
+{% if not demo %}
+<form method="post" class="toolbar">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="add">
+  <input class="input scrap-cat-input" name="name" maxlength="40" required placeholder="New category, e.g. Laptops" aria-label="New category name">
+  <button class="btn btn-primary" type="submit">{% icon "plus" %} Add category</button>
+</form>
+{% endif %}
+
+<div class="table-wrap"><table class="table scrap-cat-table">
+  <thead><tr><th>Category</th><th class="right">Entries</th><th class="right">Lbs</th><th></th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr{% if row.hidden %} class="is-hidden"{% endif %}>
+      <td>
+        {% if demo %}{{ row.name }}{% else %}
+        <form method="post" class="scrap-rename">
+          {% csrf_token %}<input type="hidden" name="action" value="rename"><input type="hidden" name="id" value="{{ row.pk }}">
+          <input class="input" name="name" value="{{ row.name }}" maxlength="40" required aria-label="Name of {{ row.name }}">
+          <button class="btn btn-sm" type="submit">Rename</button>
+        </form>
+        {% endif %}
+        {% if row.hidden %}<span class="tag">Hidden</span>{% endif %}
+      </td>
+      <td class="right num">{{ row.n }}</td>
+      <td class="right num">{{ row.lbs|lbs }}</td>
+      <td class="right">
+        {% if not demo %}
+        <form method="post">
+          {% csrf_token %}<input type="hidden" name="id" value="{{ row.pk }}">
+          {% if row.hidden %}<button class="btn btn-ghost btn-sm" name="action" value="show" type="submit">Show</button>
+          {% else %}<button class="btn btn-ghost btn-sm" name="action" value="hide" type="submit">Hide</button>{% endif %}
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr class="empty"><td colspan="4">No categories yet. Add one above.</td></tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}
