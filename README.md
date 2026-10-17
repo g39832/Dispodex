@@ -19,8 +19,9 @@ Built by [g39832](https://github.com/g39832). Dispodex replaced a PHP + SQLite t
   reconciliation that repairs safe mismatches.
 - **Operations**: nightly verified SQLite backups, automatic backup before database updates,
   health checks, a background worker and a data importer that verifies every record and photo.
-- **Scrap tracking**: take scrap in with its date, who took it in and its weight, mark it moved to the
-  scrap side, see pounds by period, category and person, and import a Google Sheets CSV log.
+- **Weigh-in**: weigh items in from the shop scale (a Raspberry Pi agent) with the date, who took them in
+  and public or company drop-off, mark them moved, see pounds by period, drop-off, category and person,
+  and import a Google Sheets CSV log.
 - **Responsive UI** tested from 320 px phones to wide monitors, light and dark themes.
 
 **Tech:** Python 3.11, Django 5.2, SQLite (WAL), Waitress, WhiteNoise, Pillow, openpyxl,

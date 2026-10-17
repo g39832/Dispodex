@@ -1,4 +1,4 @@
-"""The Scrap page: weigh things, mark them moved to the scrap side, and see how many pounds went over."""
+"""The Weigh-in page: weigh what comes in, mark it moved when it goes over, and see how many pounds that was."""
 from __future__ import annotations
 
 import csv
@@ -231,7 +231,7 @@ def _back(request, default="scrap"):
 def weigh(request):
     """Add one weighed thing to the scrap list (waiting to move, or moved straight away)."""
     if _demo():
-        messages.error(request, "Adding scrap is turned off in the demo.")
+        messages.error(request, "Weighing in is turned off in the demo.")
         return _back(request)
     # Without a saved name, the "Taken in by" box also says who is entering it.
     who = _who(request) or clean_name(request.POST.get("weighed_by", ""))
@@ -364,7 +364,7 @@ def delete(request, entry_id: int):
         messages.error(request, "Deleting is turned off in the demo.")
         return redirect("scrap_edit", entry_id=entry.pk)
     if settings.PINKSHEET["REQUIRE_LOGIN"] and not request.user.is_staff:
-        messages.error(request, "Only a staff member can delete scrap entries. Fix the weight instead, or ask staff.")
+        messages.error(request, "Only a staff member can delete weigh-ins. Fix the weight instead, or ask staff.")
         return redirect("scrap_edit", entry_id=entry.pk)
     label = str(entry)
     entry.delete()
@@ -457,7 +457,7 @@ def export_csv(request):
     entries, _ = _filtered_history(request, start, end)
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     stamp = timezone.localtime().strftime("%Y-%m-%d")
-    response["Content-Disposition"] = f'attachment; filename="scrap-{stamp}.csv"'
+    response["Content-Disposition"] = f'attachment; filename="weigh-ins-{stamp}.csv"'
     response.write("﻿")  # Excel opens UTF-8 correctly with a BOM
     writer = csv.writer(response)
     writer.writerow(["Date taken in", "Taken in by", "Weight (lbs)", "Drop-off", "Company", "What it is", "Category", "Moved to scrap",

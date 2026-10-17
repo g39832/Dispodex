@@ -119,8 +119,8 @@
       if (del.dataset.confirmed) return;
       e.preventDefault();
       P.confirm({
-        title: 'Delete this scrap entry?',
-        body: del.dataset.title + ' is removed from the scrap totals for everyone.',
+        title: 'Delete this weigh-in?',
+        body: del.dataset.title + ' is removed from the weigh-in totals for everyone.',
         confirmLabel: 'Delete', danger: true
       }).then(function (ok) {
         if (!ok) return;

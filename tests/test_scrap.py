@@ -159,7 +159,7 @@ def test_custom_date_range_and_filters(named):
 def test_empty_page_renders(client):
     page = client.get("/scrap/")
     assert page.status_code == 200
-    assert "No scrap yet" in text(page)
+    assert "Nothing weighed in yet" in text(page)
 
 
 # ── editing ──────────────────────────────────────────────────────────────────
@@ -551,3 +551,9 @@ def test_only_staff_set_the_scale_when_sign_in_is_on(client, settings):
     client.login(username="boss", password="pw")
     client.post("/scrap/scale/", {"url": "10.0.0.20:8765"})
     assert scale.url() == "http://10.0.0.20:8765/api/weight"
+
+
+def test_tab_is_called_weigh_in(client):
+    page = text(client.get("/scrap/"))
+    assert "<title>Weigh-in" in page and 'class="page-title">Weigh-in<' in page
+    assert ">Scrap<" not in page

@@ -11,7 +11,7 @@ NAV = [
     ("scripts", "Script builder", "script"),
     ("listing_images", "Listing images", "image"),
     ("imaging", "Imaging", "cpu"),
-    ("scrap", "Scrap", "scale"),
+    ("scrap", "Weigh-in", "scale"),
     ("docs", "Team docs", "book"),
 ]
 

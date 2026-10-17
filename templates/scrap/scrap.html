@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static ui %}
-{% block title %}Scrap{% endblock %}
+{% block title %}Weigh-in{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1 class="page-title">Scrap</h1>
-    <p class="page-desc">Take in scrap with its date, who took it in and its weight, then mark it moved to the scrap side. Totals show how many pounds came in and went over.</p>
+    <h1 class="page-title">Weigh-in</h1>
+    <p class="page-desc">Weigh in what comes through the door with its date, who took it in, the drop-off and its weight, then mark it moved when it goes over. Totals show how many pounds came in and went out.</p>
   </div>
   <div class="head-actions">
     <a class="btn" href="{% url 'scrap_import' %}">{% icon "upload" %} Import CSV</a>
@@ -44,9 +44,9 @@
 
 <div class="scrap-work">
   <section class="panel panel-pad scrap-take-in" aria-labelledby="take-in-title">
-    <h2 class="scrap-panel-title" id="take-in-title">{% icon "scale" %} Take in scrap</h2>
+    <h2 class="scrap-panel-title" id="take-in-title">{% icon "scale" %} Weigh in</h2>
     {% if demo %}
-      <div class="callout info">{% icon "info" %}<span>Taking in scrap is turned off in the demo.</span></div>
+      <div class="callout info">{% icon "info" %}<span>Weighing in is turned off in the demo.</span></div>
     {% else %}
     <form method="post" action="{% url 'scrap_weigh' %}" class="scrap-form" data-scrap-weigh>
       {% csrf_token %}
@@ -106,7 +106,7 @@
       </div>
       <label class="check"><input type="checkbox" name="moved_now" value="1"> It's already been moved to scrap</label>
       <div class="head-actions">
-        <button class="btn btn-primary" type="submit">{% icon "plus" %} Add to scrap</button>
+        <button class="btn btn-primary" type="submit">{% icon "plus" %} Add weigh-in</button>
       </div>
     </form>
     {% endif %}
@@ -131,7 +131,7 @@
         <li class="scrap-waiting-row">
           <label class="check"><input type="checkbox" name="entry" value="{{ entry.pk }}" data-lbs="{{ entry.weight_lbs }}" aria-label="Select {{ entry.description|default:'scrap' }}, {{ entry.weight_lbs }} lbs"></label>
           <a class="scrap-waiting-text" href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">
-            <span class="scrap-waiting-what">{{ entry.description|default:"Scrap" }}{% if entry.category %} <span class="tag">{{ entry.category.name }}</span>{% endif %}</span>
+            <span class="scrap-waiting-what">{{ entry.description|default:"Item" }}{% if entry.category %} <span class="tag">{{ entry.category.name }}</span>{% endif %}</span>
             <span class="doc-meta"><span>{% icon "calendar" %} {{ entry.weighed_at|date:"M j" }}</span><span>{% icon "user" %} {{ entry.weighed_by }}</span>{% if entry.drop_off %}<span>{{ entry.get_drop_off_display }}{% if entry.company %} · {{ entry.company }}{% endif %}</span>{% endif %}</span>
           </a>
           <span class="scrap-lbs num">{{ entry.weight_lbs|lbs }} lbs</span>
@@ -235,13 +235,13 @@
         <td>{{ entry.weighed_by }}</td>
         <td class="right num nowrap"><strong>{{ entry.weight_lbs|lbs }}</strong></td>
         <td>{% if entry.drop_off %}<span class="tag {% if entry.drop_off == 'company' %}blue{% endif %}">{% if entry.drop_off == 'company' %}Company{% else %}Public{% endif %}</span>{% if entry.company %} <span class="muted">{{ entry.company }}</span>{% endif %}{% else %}<span class="faint">—</span>{% endif %}</td>
-        <td><a href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">{{ entry.description|default:"Scrap" }}</a>{% if entry.note %} <span class="faint" title="{{ entry.note }}">· {{ entry.note|truncatechars:40 }}</span>{% endif %}</td>
+        <td><a href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">{{ entry.description|default:"Item" }}</a>{% if entry.note %} <span class="faint" title="{{ entry.note }}">· {{ entry.note|truncatechars:40 }}</span>{% endif %}</td>
         <td class="hide-sm">{% if entry.category %}<span class="tag">{{ entry.category.name }}</span>{% endif %}</td>
         <td>{% if entry.moved_at %}<span class="tag green" title="Moved {{ entry.moved_at|date:'M j, Y g:i A' }} by {{ entry.moved_by }}">Moved {{ entry.moved_at|date:"M j" }} · {{ entry.moved_by }}</span>{% else %}<span class="tag amber">Waiting</span>{% endif %}</td>
         <td class="hide-sm right"><a class="btn btn-ghost btn-sm" href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">Edit</a></td>
       </tr>
       {% empty %}
-      <tr class="empty"><td colspan="8">{% if filtered %}No entries match these filters. <a href="?{{ period_query }}#history">Show everything</a>{% elif total_entries %}Nothing was taken in or moved in this period.{% else %}No scrap yet. Take in the first item above, or import your Google Sheet.{% endif %}</td></tr>
+      <tr class="empty"><td colspan="8">{% if filtered %}No entries match these filters. <a href="?{{ period_query }}#history">Show everything</a>{% elif total_entries %}Nothing was taken in or moved in this period.{% else %}Nothing weighed in yet. Weigh in the first item above, or import your Google Sheet.{% endif %}</td></tr>
       {% endfor %}
     </tbody>
   </table></div>

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load static ui %}
-{% block title %}Scrap entry{% endblock %}
+{% block title %}Weigh-in entry{% endblock %}
 {% block page_class %}narrow{% endblock %}
 {% block content %}
-<div class="crumbs"><a href="{{ next|default:'/scrap/' }}">Scrap</a> <span>/</span></div>
+<div class="crumbs"><a href="{{ next|default:'/scrap/' }}">Weigh-in</a> <span>/</span></div>
 <div class="page-head">
   <div>
     <h1 class="page-title">{{ entry.weight_lbs|lbs }} lbs{% if entry.description %} · {{ entry.description }}{% endif %}</h1>
