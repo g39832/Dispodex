@@ -16,57 +16,60 @@
     });
   }
 
-  // Live scale: show the weight about once a second; "Use scale weight" copies a steady reading into the form.
+  // Scale: tap "Get weight" to read the scale once (easy on the Pi) and put a steady reading in the form.
   var scaleBox = document.querySelector('[data-scrap-scale]');
-  if (scaleBox && weight) {
+  var getBtn = scaleBox && scaleBox.querySelector('[data-scale-get]');
+  var source = document.querySelector('[data-scale-source]');
+  if (getBtn && weight) {
     var valueEl = scaleBox.querySelector('[data-scale-value]');
     var statusEl = scaleBox.querySelector('[data-scale-status]');
-    var useBtn = scaleBox.querySelector('[data-scale-use]');
-    var source = document.querySelector('[data-scale-source]');
-    var latest = null, timer = null, busy = false;
-    var trim = function (text) { return String(text).replace(/\.?0+$/, ''); };
+    var trim = function (text) { return String(text).replace(/\.0+$|(\.\d*?)0+$/, '$1'); };
     var show = function (state, value, status) {
       scaleBox.dataset.state = state;
       valueEl.textContent = value;
       statusEl.textContent = status;
     };
-    var poll = function () {
-      if (busy || document.hidden) return;
-      busy = true;
+    getBtn.addEventListener('click', function () {
+      getBtn.disabled = true;
+      show('loading', '…', 'Reading the scale');
       fetch(scaleBox.dataset.scrapScale, { headers: { Accept: 'application/json' }, cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (!data.online || data.lbs === null) {
-            latest = null;
-            show('offline', '—', data.error || 'Scale offline');
+            show('offline', '—', data.error || 'The scale isn\u2019t answering');
+          } else if (!data.stable) {
+            show('settling', trim(data.lbs) + ' lbs', 'Still settling. Tap Get weight again in a moment.');
+          } else if (parseFloat(data.lbs) <= 0) {
+            show('settling', '0 lbs', 'Nothing on the scale yet');
           } else {
-            latest = data.stable ? trim(data.lbs) : null;
-            show(data.stable ? 'stable' : 'settling', trim(data.lbs) + ' lbs', data.stable ? 'Steady' : 'Settling…');
+            show('stable', trim(data.lbs) + ' lbs', 'Put in the weight box');
+            weight.value = trim(data.lbs);
+            source.value = 'scale';
+            weight.classList.add('is-from-scale');
           }
         })
-        .catch(function () { latest = null; show('offline', '—', 'Can’t reach Dispodex'); })
-        .then(function () {
-          busy = false;
-          useBtn.disabled = !latest || parseFloat(latest) <= 0;
-        });
-    };
-    var start = function () { if (!timer) { poll(); timer = setInterval(poll, 1000); } };
-    var stop = function () { clearInterval(timer); timer = null; };
-    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
-    useBtn.addEventListener('click', function () {
-      if (!latest) return;
-      weight.value = latest;
-      source.value = 'scale';
-      weight.classList.add('is-from-scale');
-      weight.focus();
+        .catch(function () { show('offline', '—', 'Can\u2019t reach Dispodex. Check your connection.'); })
+        .then(function () { getBtn.disabled = false; });
     });
-    // Typing over the scale's number makes it a typed-in weight again.
+  }
+  // Typing over the scale's number makes it a typed-in weight again.
+  if (weight && source) {
     weight.addEventListener('input', function () {
       source.value = 'typed';
       weight.classList.remove('is-from-scale');
     });
-    start();
   }
+
+  // Drop-off: the company name box only shows for a company drop-off.
+  document.querySelectorAll('[data-drop-off]').forEach(function (box) {
+    var company = box.querySelector('[data-company]');
+    box.querySelectorAll('input[name="drop_off"]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        company.hidden = !(radio.checked && radio.value === 'company');
+        if (!company.hidden) company.focus();
+      });
+    });
+  });
 
   // Waiting to move: tick rows, see how many pounds that is, then mark them moved in one go.
   var moveForm = document.querySelector('[data-scrap-move]');

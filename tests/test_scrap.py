@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
-from scrap import importer
+from scrap import importer, scale
 from scrap.models import ScrapCategory, ScrapEntry
 
 pytestmark = pytest.mark.django_db
@@ -24,7 +24,7 @@ def named(client):
 
 
 def weigh(client, **data):
-    return client.post("/scrap/weigh/", {"weight": "12.5", **data}, follow=True)
+    return client.post("/scrap/weigh/", {"weight": "12.5", "drop_off": "public", **data}, follow=True)
 
 
 def text(response) -> str:
@@ -427,10 +427,127 @@ def test_scale_not_set_up(client, settings):
     settings.PINKSHEET = {**settings.PINKSHEET, "SCALE_URL": ""}
     data = client.get("/api/scrap/scale/").json()
     assert data["configured"] is False and data["lbs"] is None
-    assert "data-scrap-scale" not in text(client.get("/scrap/"))
+    page = text(client.get("/scrap/"))
+    assert "No scale set up yet" in page and "data-scale-get" not in page
 
 
 def test_scale_readout_on_page_and_scale_source_saved(named, scale_url):
-    assert "data-scrap-scale" in text(named.get("/scrap/"))
+    assert "data-scale-get" in text(named.get("/scrap/"))
     weigh(named, weight="127", source="scale")
     assert ScrapEntry.objects.get().source == ScrapEntry.Source.SCALE
+
+
+# ── drop-off: public or company ─────────────────────────────────────────────
+def test_drop_off_is_required(named):
+    response = named.post("/scrap/weigh/", {"weight": "5"}, follow=True)
+    assert "public drop-off or a company drop-off" in text(response)
+    assert "public drop-off or a company drop-off" in text(weigh(named, drop_off="maybe"))
+    assert not ScrapEntry.objects.exists()
+
+
+def test_company_drop_off_keeps_company_name(named):
+    response = weigh(named, drop_off="company", company="  Acme   Corp ")
+    entry = ScrapEntry.objects.get()
+    assert entry.drop_off == "company" and entry.company == "Acme Corp"
+    assert "company drop-off, Acme Corp" in text(response)
+
+
+def test_public_drop_off_ignores_company_name(named):
+    weigh(named, drop_off="public", company="Acme")
+    entry = ScrapEntry.objects.get()
+    assert entry.drop_off == "public" and entry.company == ""
+
+
+def test_drop_off_totals_filter_and_export(named):
+    make("10", drop_off="public")
+    make("30", drop_off="company", company="Acme")
+    make("5")  # from before drop-off was asked
+    page = named.get("/scrap/?range=all")
+    rows = {row["key"]: row for row in page.context["by_drop_off"]}
+    assert rows["public"]["lbs"] == Decimal("10.00") and rows["company"]["lbs"] == Decimal("30.00")
+    assert rows["unknown"]["name"] == "Not recorded"
+    assert named.get("/scrap/?range=all&drop_off=company").context["page_obj"].paginator.count == 1
+    assert named.get("/scrap/?range=all&drop_off=unknown").context["page_obj"].paginator.count == 1
+    assert named.get("/scrap/?range=all&q=acme").context["page_obj"].paginator.count == 1
+    exported = list(csv.reader(io.StringIO(named.get("/exports/scrap.csv?range=all").content.decode("utf-8-sig"))))
+    assert exported[0][3:5] == ["Drop-off", "Company"]
+    assert ["Company drop-off", "Acme"] in [row[3:5] for row in exported[1:]]
+
+
+def test_edit_drop_off(named):
+    entry = make("10", drop_off="public")
+    named.post(f"/scrap/{entry.pk}/", {"weight": "10", "weighed_by": "Grayson", "drop_off": "company", "company": "Acme",
+                                       "taken_in": timezone.localtime(entry.weighed_at).date().isoformat()})
+    entry.refresh_from_db()
+    assert entry.drop_off == "company" and entry.company == "Acme"
+
+
+def test_import_drop_off_column(named):
+    upload(named, "Date,Weight,Drop off,Company\n10/1/2026,5,Public,\n10/1/2026,6,Company drop off,Acme\n10/1/2026,7,,\n")
+    named.post("/scrap/import/", {"action": "import", "moved_default": "1", "map_date": "Date", "map_weight": "Weight",
+                                  "map_drop_off": "Drop off", "map_company": "Company"})
+    by_weight = {int(e.weight_lbs): e for e in ScrapEntry.objects.all()}
+    assert by_weight[5].drop_off == "public" and by_weight[6].drop_off == "company"
+    assert by_weight[6].company == "Acme" and by_weight[7].drop_off == ""
+
+
+def test_import_fingerprint_ignores_new_columns(named):
+    """Rows imported before drop-off existed must still be spotted as already imported."""
+    upload(named, "Date,Weight\n10/1/2026,5\n")
+    named.post("/scrap/import/", {"action": "import", "moved_default": "1", "map_date": "Date", "map_weight": "Weight"})
+    upload(named, "Date,Weight,Drop off\n10/1/2026,5,\n")
+    assert named.get("/scrap/import/").context["result"].duplicates == 1
+
+
+def test_drop_off_from_text():
+    assert importer.drop_off_from("Public") == "public"
+    assert importer.drop_off_from("walk-in") == "public"
+    assert importer.drop_off_from("Business pickup") == "company"
+    assert importer.drop_off_from("Acme LLC") == "company"
+    assert importer.drop_off_from("since monday") == ""
+    assert importer.drop_off_from("") == ""
+
+
+# ── scale settings ───────────────────────────────────────────────────────────
+@responses_lib.activate
+def test_scale_address_set_in_the_app(named, settings):
+    settings.PINKSHEET = {**settings.PINKSHEET, "SCALE_URL": ""}
+    responses_lib.get("http://10.0.0.20:8765/api/weight", json={"online": True, "stable": True, "weight": 42, "unit": "lb"})
+    response = named.post("/scrap/scale/", {"url": " 10.0.0.20:8765 "}, follow=True)
+    assert "Scale address saved" in text(response)
+    assert "42 lbs" in text(response) and "Connected" in text(response)
+    assert scale.url() == "http://10.0.0.20:8765/api/weight"
+    assert "data-scale-get" in text(named.get("/scrap/"))
+    assert named.get("/api/scrap/scale/").json()["lbs"] == "42.00"
+
+
+def test_scale_address_in_app_wins_over_env(named, scale_url):
+    named.post("/scrap/scale/", {"url": "http://pi.local:9000/api/weight"})
+    assert scale.url() == "http://pi.local:9000/api/weight"
+    named.post("/scrap/scale/", {"url": ""})
+    assert scale.url() == SCALE
+
+
+def test_scale_address_rejects_junk(named):
+    assert "Enter the scale" in text(named.post("/scrap/scale/", {"url": "ftp://x"}, follow=True))
+    assert "Enter the scale" in text(named.post("/scrap/scale/", {"url": "http://"}, follow=True))
+
+
+@responses_lib.activate
+def test_scale_settings_shows_why_it_fails(named, scale_url):
+    responses_lib.get(SCALE, body=requests.ConnectionError("down"))
+    page = text(named.get("/scrap/scale/"))
+    assert "Not working" in page and "Can&#x27;t reach the scale" in page
+
+
+def test_only_staff_set_the_scale_when_sign_in_is_on(client, settings):
+    settings.PINKSHEET = {**settings.PINKSHEET, "REQUIRE_LOGIN": True, "SCALE_URL": ""}
+    User.objects.create_user("worker", password="pw")
+    User.objects.create_user("boss", password="pw", is_staff=True)
+    client.login(username="worker", password="pw")
+    client.post("/scrap/scale/", {"url": "10.0.0.20:8765"})
+    assert scale.url() == ""
+    assert "Only a staff member" in text(client.get("/scrap/scale/"))
+    client.login(username="boss", password="pw")
+    client.post("/scrap/scale/", {"url": "10.0.0.20:8765"})
+    assert scale.url() == "http://10.0.0.20:8765/api/weight"

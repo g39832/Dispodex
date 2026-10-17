@@ -1,17 +1,21 @@
 """Read the shop scale through its scale agent (a small web service next to the scale).
 
-The agent answers GET <PINKSHEET_SCALE_URL> with
+The agent's address is set on the Scale settings page (or PINKSHEET_SCALE_URL in
+.env). It answers GET <address> with
     {"online": true, "stable": true, "weight": 127.0, "unit": "lb", "raw": "ST,GS,+    127lb"}
-Dispodex asks it on the page's behalf, so phones and HTTPS pages never talk to
+Dispodex asks it when someone taps Get weight, so phones and HTTPS pages never talk to
 the scale directly, and turns any unit into pounds.
 """
 from __future__ import annotations
 
 import logging
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 from django.conf import settings
+
+from operations.models import SystemState
 
 logger = logging.getLogger("pinksheet")
 
@@ -23,15 +27,35 @@ TO_LBS = {
 }
 
 
+SCALE_URL_KEY = "scrap_scale_url"
+SCALE_EDITED_KEY = "scrap_scale_edited"
+
+
 def url() -> str:
-    return settings.PINKSHEET["SCALE_URL"]
+    """The address set on the Scale settings page, else PINKSHEET_SCALE_URL from .env."""
+    return SystemState.get(SCALE_URL_KEY) or settings.PINKSHEET["SCALE_URL"]
+
+
+def clean_url(text: str) -> str:
+    """A usable agent address from what was typed: "10.42.0.106:8765" becomes
+    "http://10.42.0.106:8765/api/weight". Raises ValueError if it can't be one."""
+    value = "".join(str(text or "").split())
+    if not value:
+        return ""
+    if "://" not in value:
+        value = "http://" + value
+    parts = urlsplit(value)
+    if parts.scheme not in ("http", "https") or not parts.hostname or len(value) > 300:
+        raise ValueError("Enter the scale's address, like http://10.0.0.20:8765/api/weight.")
+    path = parts.path if parts.path not in ("", "/") else "/api/weight"
+    return urlunsplit((parts.scheme, parts.netloc, path, parts.query, ""))
 
 
 def reading() -> dict:
     """{"configured", "online", "stable", "lbs", "error"} — never raises."""
     if not url():
         return {"configured": False, "online": False, "stable": False, "lbs": None,
-                "error": "No scale is set up. Add PINKSHEET_SCALE_URL to .env."}
+                "error": "No scale is set up yet. Add its address in Scale settings."}
     try:
         response = requests.get(url(), timeout=TIMEOUT_SECONDS)
         response.raise_for_status()

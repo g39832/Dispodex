@@ -369,7 +369,15 @@ textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .scrap-scale[data-state="settling"] .scrap-scale-status { color: var(--amber-text); }
 .scrap-scale[data-state="offline"] .scrap-scale-value { color: var(--text-faint); }
 .scrap-scale[data-state="offline"] .scrap-scale-status { color: var(--red); }
+.scrap-scale[data-state="off"] .scrap-scale-value { color: var(--text-faint); }
+.scrap-scale-actions { display: flex; align-items: center; gap: 6px; }
 .scrap-weight-input.is-from-scale { border-color: var(--green); }
+.scrap-drop-off { border: 0; padding: 0; margin: 0; min-width: 0; }
+.scrap-drop-off .choices { padding: 2px 0 0; }
+.scrap-drop-off [data-company] { margin-top: 6px; }
+.scrap-scale-test { display: grid; gap: 8px; margin-bottom: 16px; }
+.scrap-scale-test code { overflow-wrap: anywhere; }
+.scrap-scale-test .btn { justify-self: start; }
 .scrap-weight-input {font-size: 26px; font-weight: 650; height: 52px; font-variant-numeric: tabular-nums; }
 .scrap-mover { margin-bottom: 8px; }
 .scrap-waiting-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); max-height: 520px; overflow-y: auto; }

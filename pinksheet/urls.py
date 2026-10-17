@@ -39,6 +39,7 @@ urlpatterns = [
     path("scrap/move/", scrap_views.move, name="scrap_move"),
     path("scrap/categories/", scrap_views.categories, name="scrap_categories"),
     path("scrap/import/", scrap_views.import_view, name="scrap_import"),
+    path("scrap/scale/", scrap_views.scale_settings, name="scrap_scale_settings"),
     path("api/scrap/scale/", scrap_views.scale_reading, name="api_scrap_scale"),
     path("scrap/<int:entry_id>/", scrap_views.edit, name="scrap_edit"),
     path("scrap/<int:entry_id>/unmove/", scrap_views.unmove, name="scrap_unmove"),

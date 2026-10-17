@@ -33,6 +33,9 @@ FIELDS: dict[str, tuple[str, list[str]]] = {
                                "Received", "Date weighed", "Weighed", "Weighed on", "Day", "When", "Time"]),
     "description": ("What it is", ["What is it", "What", "Item", "Items", "Item name", "Description", "Product",
                                    "Equipment", "Device"]),
+    "drop_off": ("Drop-off (public or company)", ["Drop off", "Drop-off", "Dropoff", "Drop off type", "Public or company",
+                                                  "Source", "From", "Customer type", "Customer"]),
+    "company": ("Company name", ["Company", "Company name", "Business", "Business name"]),
     "category": ("Category", ["Category", "Type", "Kind", "Material", "Scrap type", "Scrap category"]),
     "weighed_by": ("Taken in by", ["Taken in by", "Received by", "Weighed by", "Name", "Person", "Employee", "Who", "By", "Worker", "Tech",
                                   "Your name", "Email address", "Email"]),
@@ -41,6 +44,9 @@ FIELDS: dict[str, tuple[str, list[str]]] = {
     "moved_by": ("Moved by", ["Moved by", "Taken by", "Carried by"]),
     "note": ("Note", ["Note", "Notes", "Comment", "Comments", "Memo"]),
 }
+# The fingerprint that spots already-imported rows uses these columns only. Keep this list as it is:
+# changing it would make rows imported before look new and import them twice.
+KEY_FIELDS = ("weight", "date", "description", "category", "weighed_by", "moved", "moved_by", "note")
 _ALIASES = {_norm(alias): name for name, (_, aliases) in FIELDS.items() for alias in aliases}
 
 YES_WORDS = {"yes", "y", "true", "x", "1", "moved", "done", "scrapped", "scrap", "complete", "completed"}
@@ -140,6 +146,8 @@ class Row:
     moved_by: str
     note: str
     key: str
+    drop_off: str = ""
+    company: str = ""
     duplicate: bool = False
 
 
@@ -214,7 +222,7 @@ def plan(rows: list[dict], mapping: dict[str, str], *, moved_default: bool, impo
         elif moved_default:
             moved_at = weighed_at
         # Identical rows in one sheet are separate items: number them so each keeps its own fingerprint.
-        values = "|".join(cell.get(name, "").lower() for name in FIELDS)
+        values = "|".join(cell.get(name, "").lower() for name in KEY_FIELDS)
         seen[values] = seen.get(values, 0) + 1
         key = hashlib.sha256(f"{values}|{seen[values]}".encode()).hexdigest()
         weighed_by = _clip(cell.get("weighed_by", ""), 80) or importer
@@ -223,12 +231,25 @@ def plan(rows: list[dict], mapping: dict[str, str], *, moved_default: bool, impo
             category=_clip(cell.get("category", ""), 40), weighed_by=weighed_by, moved_at=moved_at,
             moved_by=(_clip(cell.get("moved_by", ""), 80) or weighed_by) if moved_at else "",
             note=_clip(cell.get("note", ""), 255), key=key,
+            drop_off=drop_off_from(cell.get("drop_off", "")), company=_clip(cell.get("company", ""), 120),
         ))
     known = set(ScrapEntry.objects.filter(import_key__in=[row.key for row in result.rows])
                 .values_list("import_key", flat=True))
     for row in result.rows:
         row.duplicate = row.key in known
     return result
+
+
+def drop_off_from(text: str) -> str:
+    """"Public", "public drop-off", "Company", "Business" … -> the stored choice ("" if it doesn't say)."""
+    value = str(text or "").strip().lower()
+    if not value:
+        return ""
+    if re.search(r"compan|business|corp|commercial|\bb2b\b|\bllc\b|\binc\b", value):
+        return ScrapEntry.DropOff.COMPANY
+    if re.search(r"public|resident|walk|person|individual|customer", value):
+        return ScrapEntry.DropOff.PUBLIC
+    return ""
 
 
 def category_for(name: str, created_by: str) -> ScrapCategory | None:
@@ -257,6 +278,7 @@ def apply(result: Plan, *, importer: str) -> int:
             description=row.description, weight_lbs=row.weight, category=categories[key], note=row.note,
             source=ScrapEntry.Source.IMPORT, weighed_by=row.weighed_by, weighed_at=row.weighed_at, added_by=importer,
             moved_by=row.moved_by, moved_at=row.moved_at, import_key=row.key,
+            drop_off=row.drop_off, company=row.company if row.drop_off == ScrapEntry.DropOff.COMPANY else "",
         ))
     ScrapEntry.objects.bulk_create(entries, batch_size=500)
     return len(entries)

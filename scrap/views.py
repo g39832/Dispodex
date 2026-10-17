@@ -20,6 +20,7 @@ from django.views.decorators.http import require_GET, require_POST
 from core.actor import clean_name
 from core.http import json_ok
 from core.templatetags.ui import lbs
+from operations.models import SystemState
 from operations.sheet_import import SheetError
 from scrap import importer, scale
 from scrap.models import ScrapCategory, ScrapEntry
@@ -106,6 +107,11 @@ def _taken_in(text: str):
     return timezone.make_aware(datetime.combine(day, datetime.min.time().replace(hour=12)))
 
 
+def _company(drop_off: str, text: str) -> str:
+    """The company's name, kept only for a company drop-off."""
+    return " ".join(str(text or "").split())[:120] if drop_off == ScrapEntry.DropOff.COMPANY else ""
+
+
 def _within(field: str, start, end) -> Q:
     q = Q(**{f"{field}__isnull": False})
     if start:
@@ -122,20 +128,24 @@ def _totals(queryset) -> dict:
 
 def _filtered_history(request, start, end):
     """Entries weighed or moved in the period, narrowed by the search, category and person filters."""
-    filters = {key: request.GET.get(key, "").strip() for key in ("q", "category", "person", "state")}
+    filters = {key: request.GET.get(key, "").strip() for key in ("q", "category", "person", "state", "drop_off")}
     entries = ScrapEntry.objects.select_related("category").filter(
         _within("weighed_at", start, end) | _within("moved_at", start, end)
     )
     if filters["q"]:
         q = filters["q"]
         entries = entries.filter(Q(description__icontains=q) | Q(note__icontains=q) | Q(category__name__icontains=q)
-                                 | Q(weighed_by__icontains=q) | Q(moved_by__icontains=q))
+                                 | Q(weighed_by__icontains=q) | Q(moved_by__icontains=q) | Q(company__icontains=q))
     if filters["category"] == "none":
         entries = entries.filter(category__isnull=True)
     elif filters["category"].isdigit():
         entries = entries.filter(category_id=int(filters["category"]))
     if filters["person"]:
         entries = entries.filter(Q(weighed_by=filters["person"]) | Q(moved_by=filters["person"]))
+    if filters["drop_off"] in ScrapEntry.DropOff.values:
+        entries = entries.filter(drop_off=filters["drop_off"])
+    elif filters["drop_off"] == "unknown":
+        entries = entries.filter(drop_off="")
     if filters["state"] == "moved":
         entries = entries.filter(moved_at__isnull=False)
     elif filters["state"] == "waiting":
@@ -165,6 +175,15 @@ def _category_breakdown(start, end) -> list[dict]:
              "share": round(float((row["lbs"] or ZERO) / total * 100), 1) if total else 0} for row in rows]
 
 
+def _drop_off_breakdown(start, end) -> list[dict]:
+    """Pounds taken in during the period from public and company drop-offs."""
+    rows = {row["drop_off"]: row for row in ScrapEntry.objects.filter(_within("weighed_at", start, end))
+            .values("drop_off").annotate(lbs=Sum("weight_lbs"), n=Count("id"))}
+    labels = [*ScrapEntry.DropOff.choices, ("", "Not recorded")]
+    return [{"key": key or "unknown", "name": label, "lbs": rows[key]["lbs"] or ZERO, "count": rows[key]["n"]}
+            for key, label in labels if key in rows]
+
+
 def _visible_categories():
     return ScrapCategory.objects.filter(hidden=False).order_by("name")
 
@@ -189,13 +208,14 @@ def scrap(request):
         "all_moved_totals": _totals(ScrapEntry.objects.filter(moved_at__isnull=False)),
         "categories": _visible_categories(), "all_categories": ScrapCategory.objects.order_by("name"),
         "by_category": _category_breakdown(start, end), "by_person": _people_breakdown(start, end),
+        "by_drop_off": _drop_off_breakdown(start, end), "drop_offs": ScrapEntry.DropOff.choices,
         "page_obj": page_obj, "filters": filters, "filtered": any(filters.values()),
         "people": sorted(set(people) | set(movers), key=str.lower),
         "period_query": urlencode(keep_period), "page_query": urlencode(keep_all),
         "export_query": urlencode(keep_all),
         "next": request.get_full_path(),
         "total_entries": ScrapEntry.objects.exists(),
-        "scale_ready": bool(scale.url()),
+        "scale_ready": bool(scale.url()), "can_set_scale": _can_set_scale(request),
         "today": timezone.localdate().isoformat(),
     })
 
@@ -218,16 +238,20 @@ def weigh(request):
     taken_by = clean_name(request.POST.get("weighed_by", "")) or who
     taken_at = _taken_in(request.POST.get("taken_in", ""))
     weight = _parse_lbs(request.POST.get("weight", ""))
+    drop_off = request.POST.get("drop_off", "")
     if not who:
         messages.error(request, "Add your name so everyone knows who entered it.")
     elif weight is None:
         messages.error(request, "Enter the weight in pounds, like 12.5.")
     elif taken_at is None:
         messages.error(request, "Pick the date it was taken in (today or earlier).")
+    elif drop_off not in ScrapEntry.DropOff.values:
+        messages.error(request, "Pick whether it was a public drop-off or a company drop-off.")
     else:
         now = timezone.now()
         moved_now = request.POST.get("moved_now") == "1"
         entry = ScrapEntry.objects.create(
+            drop_off=drop_off, company=_company(drop_off, request.POST.get("company", "")),
             description=" ".join(request.POST.get("description", "").split())[:200],
             weight_lbs=weight,
             category=importer.category_for(request.POST.get("category", ""), who),
@@ -237,6 +261,7 @@ def weigh(request):
             moved_by=who if moved_now else "", moved_at=max(now, taken_at) if moved_now else None,
         )
         what = f"{lbs(entry.weight_lbs)} lbs" + (f" of {entry.description}" if entry.description else "")
+        what += f" ({entry.get_drop_off_display().lower()}{f', {entry.company}' if entry.company else ''})"
         what += f", taken in by {entry.weighed_by}"
         if moved_now:
             messages.success(request, f"Added {what}, moved to scrap.")
@@ -273,13 +298,14 @@ def move(request):
 def edit(request, entry_id: int):
     entry = get_object_or_404(ScrapEntry.objects.select_related("category"), pk=entry_id)
     error = ""
-    form = {"weight": f"{entry.weight_lbs:f}".rstrip("0").rstrip("."),"description": entry.description, "note": entry.note,
+    form = {"weight": f"{entry.weight_lbs:f}".rstrip("0").rstrip("."), "description": entry.description, "note": entry.note,
             "category": entry.category.name if entry.category else "", "weighed_by": entry.weighed_by,
-            "taken_in": timezone.localtime(entry.weighed_at).date().isoformat()}
+            "taken_in": timezone.localtime(entry.weighed_at).date().isoformat(),
+            "drop_off": entry.drop_off, "company": entry.company}
     if request.method == "POST" and not _demo():
         who = _who(request)
         form = {key: request.POST.get(key, "").strip()
-                for key in ("weight", "description", "note", "category", "weighed_by", "taken_in")}
+                for key in ("weight", "description", "note", "category", "weighed_by", "taken_in", "drop_off", "company")}
         weight = _parse_lbs(form["weight"])
         taken_by = clean_name(form["weighed_by"])
         # An unchanged date keeps its time of day; a new one is read like on the weigh form.
@@ -293,7 +319,11 @@ def edit(request, entry_id: int):
             error = "Say who took it in."
         elif taken_at is None:
             error = "Pick the date it was taken in (today or earlier)."
+        # Older and imported entries may not say; they can stay that way until someone knows.
+        elif form["drop_off"] not in ScrapEntry.DropOff.values and (entry.drop_off or form["drop_off"]):
+            error = "Pick whether it was a public drop-off or a company drop-off."
         else:
+            entry.drop_off, entry.company = form["drop_off"], _company(form["drop_off"], form["company"])
             entry.weight_lbs = weight
             entry.weighed_by, entry.weighed_at = taken_by, taken_at
             entry.description = " ".join(form["description"].split())[:200]
@@ -306,6 +336,7 @@ def edit(request, entry_id: int):
     return render(request, "scrap/edit.html", {
         "page": "scrap", "entry": entry, "form": form, "error": error, "demo": _demo(),
         "ask_name": _asks_for_name(request), "categories": _visible_categories(),
+        "drop_offs": ScrapEntry.DropOff.choices,
         "today": timezone.localdate().isoformat(),
         "next":request.GET.get("next") or request.POST.get("next") or "",
     })
@@ -343,9 +374,46 @@ def delete(request, entry_id: int):
 
 @require_GET
 def scale_reading(request):
-    """The live scale weight for the Take in form, which asks about once a second."""
+    """One reading from the scale, when someone taps Get weight on the Take in form."""
     data = scale.reading()
     return json_ok(**{**data, "lbs": f"{data['lbs']:f}" if data["lbs"] is not None else None})
+
+
+def _can_set_scale(request) -> bool:
+    """With sign-in on, only staff change where the scale is; without it, anyone (the change is named)."""
+    if settings.PINKSHEET["REQUIRE_LOGIN"]:
+        return request.user.is_authenticated and request.user.is_staff
+    return True
+
+
+def scale_settings(request):
+    """Where Dispodex finds the scale agent, plus a test reading."""
+    can_edit = _can_set_scale(request) and not _demo()
+    error, typed = "", None
+    if request.method == "POST" and can_edit:
+        typed = request.POST.get("url", "")
+        try:
+            address = scale.clean_url(typed)
+        except ValueError as exc:
+            error = str(exc)
+        else:
+            SystemState.set(scale.SCALE_URL_KEY, address)
+            stamp = f"{request.actor} · {timezone.localtime():%b %d, %Y %I:%M %p}"
+            SystemState.set(scale.SCALE_EDITED_KEY, stamp)
+            if address:
+                messages.success(request, "Scale address saved. The test reading below uses it.")
+            else:
+                messages.success(request, "Scale address cleared." + (
+                    " The one in .env is used instead." if settings.PINKSHEET["SCALE_URL"] else ""))
+            return redirect("scrap_scale_settings")
+    current = scale.url()
+    return render(request, "scrap/scale_settings.html", {
+        "page": "scrap", "can_edit": can_edit, "error": error,
+        "value": typed if typed is not None else (SystemState.get(scale.SCALE_URL_KEY) or current),
+        "current": current, "from_env": bool(current) and not SystemState.get(scale.SCALE_URL_KEY),
+        "test": scale.reading() if current else None,
+        "last_edit": SystemState.get(scale.SCALE_EDITED_KEY),
+    })
 
 
 # ── Categories ───────────────────────────────────────────────────────────────
@@ -392,11 +460,12 @@ def export_csv(request):
     response["Content-Disposition"] = f'attachment; filename="scrap-{stamp}.csv"'
     response.write("﻿")  # Excel opens UTF-8 correctly with a BOM
     writer = csv.writer(response)
-    writer.writerow(["Date taken in", "Taken in by", "Weight (lbs)", "What it is", "Category", "Moved to scrap",
+    writer.writerow(["Date taken in", "Taken in by", "Weight (lbs)", "Drop-off", "Company", "What it is", "Category", "Moved to scrap",
                      "Moved by", "Note", "Weight from", "Entered by"])
     for entry in entries.order_by("weighed_at", "id").iterator():
         writer.writerow([
             timezone.localtime(entry.weighed_at).strftime("%Y-%m-%d %H:%M"), entry.weighed_by, f"{entry.weight_lbs}",
+            entry.get_drop_off_display(), entry.company,
             entry.description, entry.category.name if entry.category else "",
             timezone.localtime(entry.moved_at).strftime("%Y-%m-%d %H:%M") if entry.moved_at else "",
             entry.moved_by, entry.note, entry.get_source_display(), entry.added_by,

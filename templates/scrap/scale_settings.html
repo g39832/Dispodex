@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static ui %}
+{% block title %}Scale settings{% endblock %}
+{% block page_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'scrap' %}">Scrap</a> <span>/</span></div>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Scale settings</h1>
+    <p class="page-desc">Where Dispodex reads the shop scale. This is the address of the scale agent running on the computer (or Raspberry Pi) the scale plugs into.</p>
+  </div>
+</div>
+
+<section class="panel panel-pad scrap-scale-test">
+  <h2 class="scrap-panel-title">{% icon "scale" %} Test reading</h2>
+  {% if not current %}
+    <p class="muted">No scale address yet. Add it below.</p>
+  {% elif test.online and test.lbs is not None %}
+    <p><span class="tag green">Connected</span> The scale reads <strong>{{ test.lbs|lbs }} lbs</strong>{% if test.stable %} (steady){% else %} (still settling){% endif %}.</p>
+  {% else %}
+    <p><span class="tag red">Not working</span> {{ test.error }}</p>
+    <p class="hint">Dispodex's server has to reach this address, not just your computer. Check the Pi is on, its scale agent is running, and the address and port are right.</p>
+  {% endif %}
+  {% if current %}<p class="hint">Using <code>{{ current }}</code>{% if from_env %} from <code>.env</code>{% endif %}.{% if last_edit %} Last changed by {{ last_edit }}.{% endif %}</p>{% endif %}
+  {% if current %}<a class="btn btn-sm" href="{% url 'scrap_scale_settings' %}">{% icon "refresh" %} Test again</a>{% endif %}
+</section>
+
+{% if can_edit %}
+{% if error %}<div class="callout error">{% icon "alert" %}<span>{{ error }}</span></div>{% endif %}
+<form method="post" class="panel panel-pad scrap-form">
+  {% csrf_token %}
+  <div class="field">
+    <label class="field-label" for="scale-url">Scale agent address</label>
+    <input class="input mono" id="scale-url" name="url" maxlength="300" value="{{ value }}" autocomplete="off" spellcheck="false"
+           placeholder="http://10.0.0.20:8765/api/weight">
+    <span class="hint">Just the address and port works too, like <code>10.0.0.20:8765</code>. Leave it empty and save to turn the scale off.</span>
+  </div>
+  <div class="head-actions"><button class="btn btn-primary" type="submit">{% icon "check" %} Save and test</button></div>
+</form>
+{% else %}
+<div class="callout info">{% icon "info" %}<span>Only a staff member can change the scale address.</span></div>
+{% endif %}
+{% endblock %}

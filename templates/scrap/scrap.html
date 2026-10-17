@@ -51,17 +51,18 @@
     <form method="post" action="{% url 'scrap_weigh' %}" class="scrap-form" data-scrap-weigh>
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ next }}">
-      {% if scale_ready %}
-      <div class="scrap-scale" data-scrap-scale="{% url 'api_scrap_scale' %}" data-state="loading" aria-live="polite">
+      <div class="scrap-scale" data-scrap-scale="{% url 'api_scrap_scale' %}" data-state="{% if scale_ready %}idle{% else %}off{% endif %}" aria-live="polite">
         <div class="scrap-scale-read">
           <span class="scrap-scale-label">{% icon "scale" %} Scale</span>
-          <span class="scrap-scale-value num" data-scale-value>…</span>
-          <span class="scrap-scale-status" data-scale-status>Connecting</span>
+          <span class="scrap-scale-value num" data-scale-value>—</span>
+          <span class="scrap-scale-status" data-scale-status>{% if scale_ready %}Put it on the scale, then tap Get weight{% else %}No scale set up yet{% endif %}</span>
         </div>
-        <button class="btn" type="button" data-scale-use disabled>{% icon "download" %} Use scale weight</button>
+        <div class="scrap-scale-actions">
+          {% if scale_ready %}<button class="btn btn-primary" type="button" data-scale-get>{% icon "refresh" %} Get weight</button>{% endif %}
+          {% if can_set_scale %}<a class="btn btn-ghost btn-sm" href="{% url 'scrap_scale_settings' %}" title="Where Dispodex finds the scale">{% icon "settings" %}<span class="{% if scale_ready %}sr-only{% endif %}"> Set up scale</span></a>{% endif %}
+        </div>
       </div>
       <input type="hidden" name="source" value="typed" data-scale-source>
-      {% endif %}
       <div class="field scrap-weight-field">
         <label class="field-label" for="scrap-weight">Weight (lbs) <span class="faint">· required{% if scale_ready %} · from the scale or typed in{% endif %}</span></label>
         <input class="input scrap-weight-input" id="scrap-weight" name="weight" type="text" inputmode="decimal"
@@ -79,6 +80,15 @@
           <datalist id="scrap-people">{% for name in people %}<option value="{{ name }}">{% endfor %}</datalist>
         </div>
       </div>
+      <fieldset class="field scrap-drop-off" data-drop-off>
+        <legend class="field-label">Drop-off <span class="faint">· required</span></legend>
+        <div class="choices">
+          {% for value, label in drop_offs %}
+          <label class="choice"><input type="radio" name="drop_off" value="{{ value }}" required><span>{{ label }}</span></label>
+          {% endfor %}
+        </div>
+        <input class="input" name="company" maxlength="120" autocomplete="off" placeholder="Company name (optional)" aria-label="Company name" data-company hidden>
+      </fieldset>
       <div class="field">
         <label class="field-label" for="scrap-what">What it is <span class="faint">· optional</span></label>
         <input class="input" id="scrap-what" name="description" maxlength="200" autocomplete="off" placeholder="e.g. Box of cables, 3 dead laptops">
@@ -122,7 +132,7 @@
           <label class="check"><input type="checkbox" name="entry" value="{{ entry.pk }}" data-lbs="{{ entry.weight_lbs }}" aria-label="Select {{ entry.description|default:'scrap' }}, {{ entry.weight_lbs }} lbs"></label>
           <a class="scrap-waiting-text" href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">
             <span class="scrap-waiting-what">{{ entry.description|default:"Scrap" }}{% if entry.category %} <span class="tag">{{ entry.category.name }}</span>{% endif %}</span>
-            <span class="doc-meta"><span>{% icon "calendar" %} {{ entry.weighed_at|date:"M j" }}</span><span>{% icon "user" %} {{ entry.weighed_by }}</span></span>
+            <span class="doc-meta"><span>{% icon "calendar" %} {{ entry.weighed_at|date:"M j" }}</span><span>{% icon "user" %} {{ entry.weighed_by }}</span>{% if entry.drop_off %}<span>{{ entry.get_drop_off_display }}{% if entry.company %} · {{ entry.company }}{% endif %}</span>{% endif %}</span>
           </a>
           <span class="scrap-lbs num">{{ entry.weight_lbs|lbs }} lbs</span>
           {% if not demo %}<button class="btn btn-sm" type="submit" name="only" value="{{ entry.pk }}" title="Mark this one moved to scrap">{% icon "move" %} Moved</button>{% endif %}
@@ -143,8 +153,20 @@
   </section>
 </div>
 
-{% if by_category or by_person %}
-<div class="grid-2 scrap-breakdowns">
+{% if by_category or by_person or by_drop_off %}
+<div class="grid-3 scrap-breakdowns">
+  <section class="section">
+    <div class="section-head"><h2 class="section-title">{% icon "box" %} Taken in by drop-off · {{ period_label }}</h2></div>
+    {% if by_drop_off %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Drop-off</th><th class="right">Items</th><th class="right">Lbs</th></tr></thead>
+      <tbody>{% for row in by_drop_off %}<tr>
+        <td><a href="?{% if period_query %}{{ period_query }}&amp;{% endif %}drop_off={{ row.key }}#history">{{ row.name }}</a></td>
+        <td class="right num">{{ row.count }}</td><td class="right num">{{ row.lbs|lbs }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="muted">Nothing taken in during this period.</p>{% endif %}
+  </section>
   <section class="section">
     <div class="section-head"><h2 class="section-title">{% icon "tag" %} Moved to scrap by category · {{ period_label }}</h2></div>
     {% if by_category %}
@@ -190,6 +212,11 @@
       <option value="">Anyone</option>
       {% for name in people %}<option value="{{ name }}"{% if filters.person == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
     </select>
+    <select class="input" name="drop_off" aria-label="Drop-off" data-autosubmit>
+      <option value="">Any drop-off</option>
+      {% for value, label in drop_offs %}<option value="{{ value }}"{% if filters.drop_off == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      <option value="unknown"{% if filters.drop_off == "unknown" %} selected{% endif %}>Not recorded</option>
+    </select>
     <select class="input" name="state" aria-label="Moved or waiting" data-autosubmit>
       <option value="">Moved or waiting</option>
       <option value="moved"{% if filters.state == "moved" %} selected{% endif %}>Moved to scrap</option>
@@ -200,20 +227,21 @@
   </form>
   {% endif %}
   <div class="table-wrap"><table class="table scrap-table">
-    <thead><tr><th>Taken in</th><th>Taken in by</th><th class="right">Lbs</th><th>What it is</th><th class="hide-sm">Category</th><th>Status</th><th class="hide-sm"></th></tr></thead>
+    <thead><tr><th>Taken in</th><th>Taken in by</th><th class="right">Lbs</th><th>Drop-off</th><th>What it is</th><th class="hide-sm">Category</th><th>Status</th><th class="hide-sm"></th></tr></thead>
     <tbody>
       {% for entry in page_obj %}
       <tr>
         <td class="nowrap" title="{{ entry.weighed_at|date:'M j, Y g:i A' }}">{{ entry.weighed_at|date:"M j, Y" }}</td>
         <td>{{ entry.weighed_by }}</td>
         <td class="right num nowrap"><strong>{{ entry.weight_lbs|lbs }}</strong></td>
+        <td>{% if entry.drop_off %}<span class="tag {% if entry.drop_off == 'company' %}blue{% endif %}">{% if entry.drop_off == 'company' %}Company{% else %}Public{% endif %}</span>{% if entry.company %} <span class="muted">{{ entry.company }}</span>{% endif %}{% else %}<span class="faint">—</span>{% endif %}</td>
         <td><a href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">{{ entry.description|default:"Scrap" }}</a>{% if entry.note %} <span class="faint" title="{{ entry.note }}">· {{ entry.note|truncatechars:40 }}</span>{% endif %}</td>
         <td class="hide-sm">{% if entry.category %}<span class="tag">{{ entry.category.name }}</span>{% endif %}</td>
         <td>{% if entry.moved_at %}<span class="tag green" title="Moved {{ entry.moved_at|date:'M j, Y g:i A' }} by {{ entry.moved_by }}">Moved {{ entry.moved_at|date:"M j" }} · {{ entry.moved_by }}</span>{% else %}<span class="tag amber">Waiting</span>{% endif %}</td>
         <td class="hide-sm right"><a class="btn btn-ghost btn-sm" href="{% url 'scrap_edit' entry.pk %}?next={{ next|urlencode }}">Edit</a></td>
       </tr>
       {% empty %}
-      <tr class="empty"><td colspan="7">{% if filtered %}No entries match these filters. <a href="?{{ period_query }}#history">Show everything</a>{% elif total_entries %}Nothing was taken in or moved in this period.{% else %}No scrap yet. Take in the first item above, or import your Google Sheet.{% endif %}</td></tr>
+      <tr class="empty"><td colspan="8">{% if filtered %}No entries match these filters. <a href="?{{ period_query }}#history">Show everything</a>{% elif total_entries %}Nothing was taken in or moved in this period.{% else %}No scrap yet. Take in the first item above, or import your Google Sheet.{% endif %}</td></tr>
       {% endfor %}
     </tbody>
   </table></div>

@@ -85,7 +85,7 @@
   <section class="section">
     <div class="section-head"><h2 class="section-title">Preview{% if result.rows|length > 15 %} · first 15 rows{% endif %}</h2></div>
     <div class="table-wrap"><table class="table">
-      <thead><tr><th>Row</th><th>Taken in</th><th>Taken in by</th><th class="right">Lbs</th><th>What it is</th><th class="hide-sm">Category</th><th>Status</th></tr></thead>
+      <thead><tr><th>Row</th><th>Taken in</th><th>Taken in by</th><th class="right">Lbs</th><th>Drop-off</th><th>What it is</th><th class="hide-sm">Category</th><th>Status</th></tr></thead>
       <tbody>
         {% for row in preview %}
         <tr{% if row.duplicate %} class="is-duplicate"{% endif %}>
@@ -93,12 +93,13 @@
           <td class="nowrap">{{ row.weighed_at|date:"M j, Y" }}</td>
           <td>{{ row.weighed_by }}</td>
           <td class="right num"><strong>{{ row.weight|lbs }}</strong></td>
+          <td>{% if row.drop_off == "company" %}Company{% if row.company %} · {{ row.company }}{% endif %}{% elif row.drop_off == "public" %}Public{% else %}<span class="faint">—</span>{% endif %}</td>
           <td>{{ row.description }}</td>
           <td class="hide-sm">{{ row.category }}</td>
           <td>{% if row.duplicate %}<span class="tag">Already imported</span>{% elif row.moved_at %}<span class="tag green">Moved</span>{% else %}<span class="tag amber">Waiting</span>{% endif %}</td>
         </tr>
         {% empty %}
-        <tr class="empty"><td colspan="7">No rows have a usable weight with these columns.</td></tr>
+        <tr class="empty"><td colspan="8">No rows have a usable weight with these columns.</td></tr>
         {% endfor %}
       </tbody>
     </table></div>

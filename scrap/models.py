@@ -30,6 +30,13 @@ class ScrapEntry(models.Model):
         SCALE = "scale", "Scale"
         IMPORT = "import", "Imported"
 
+    class DropOff(models.TextChoices):
+        PUBLIC = "public", "Public drop-off"
+        COMPANY = "company", "Company drop-off"
+
+    # Where it came from. Blank only on entries from before this was asked, or imports that didn't say.
+    drop_off = models.CharField(max_length=10, choices=DropOff.choices, blank=True, db_index=True)
+    company = models.CharField("company name", max_length=120, blank=True)
     description = models.CharField("what it is", max_length=200, blank=True)
     weight_lbs = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(ScrapCategory, null=True, blank=True, on_delete=models.SET_NULL, related_name="entries")

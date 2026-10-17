@@ -15,6 +15,7 @@
   <dl class="kv">
     <dt>Taken in</dt><dd>{{ entry.weighed_at|date:"M j, Y g:i A" }} by <strong>{{ entry.weighed_by }}</strong></dd>
     <dt>Moved to scrap</dt><dd>{% if entry.moved_at %}{{ entry.moved_at|date:"M j, Y g:i A" }} by <strong>{{ entry.moved_by }}</strong>{% else %}Not yet{% endif %}</dd>
+    <dt>Drop-off</dt><dd>{% if entry.drop_off %}{{ entry.get_drop_off_display }}{% if entry.company %} · {{ entry.company }}{% endif %}{% else %}Not recorded{% endif %}</dd>
     <dt>Weight from</dt><dd>{{ entry.get_source_display }}</dd>
     {% if entry.added_by and entry.added_by != entry.weighed_by %}<dt>Entered by</dt><dd>{{ entry.added_by }}</dd>{% endif %}
     {% if entry.edited_at %}<dt>Last edited</dt><dd>{{ entry.edited_at|date:"M j, Y g:i A" }} by {{ entry.edited_by }}</dd>{% endif %}
@@ -48,6 +49,15 @@
     <label class="field-label" for="edit-by">Taken in by</label>
     <input class="input" id="edit-by" name="weighed_by" maxlength="40" required value="{{ form.weighed_by }}">
   </div>
+  <fieldset class="field scrap-drop-off" data-drop-off>
+    <legend class="field-label">Drop-off{% if not entry.drop_off %} <span class="faint">· not recorded yet</span>{% endif %}</legend>
+    <div class="choices">
+      {% for value, label in drop_offs %}
+      <label class="choice"><input type="radio" name="drop_off" value="{{ value }}"{% if entry.drop_off %} required{% endif %}{% if form.drop_off == value %} checked{% endif %}><span>{{ label }}</span></label>
+      {% endfor %}
+    </div>
+    <input class="input" name="company" maxlength="120" value="{{ form.company }}" placeholder="Company name (optional)" aria-label="Company name" data-company{% if form.drop_off != "company" %} hidden{% endif %}>
+  </fieldset>
   <div class="field">
     <label class="field-label" for="edit-what">What it is</label>
     <input class="input" id="edit-what" name="description" maxlength="200" value="{{ form.description }}">
